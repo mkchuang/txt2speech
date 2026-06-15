@@ -60,7 +60,8 @@
 - [x] 任務 9：完成 TASK-006 `POST /api/synthesize` 短稿合成（M2 暫時回 WAV bytes，review pass）
 - [x] 任務 10：完成 TASK-007 `tts/chunker.py` 雙條件切塊（review/app 仲裁驗證：REVIEW PASS）
 - [x] 任務 11：完成 TASK-008 PCM 多塊串接 + 長稿 synthesize（review/app gate pass）
-- [ ] 任務 12：下一步依 active plan 開 TASK-009 SQLite schema + CRUD（分頁）
+- [x] 任務 12：完成 TASK-009 `storage/db.py` SQLite schema + CRUD（分頁，review/app gate pass）
+- [ ] 任務 13：下一步依 active plan 開 TASK-010 `storage/files.py` 音檔存取 + 安全路徑
 
 ### 當前技術挑戰
 1. **TTS 切塊 + PCM 串接品質**（最高風險）
@@ -93,7 +94,7 @@
 
 ## 📊 模組開發狀態
 
-*最後更新：2026-06-15（TASK-008 review pass / update-memory）*
+*最後更新：2026-06-15（TASK-009 review pass / update-memory）*
 
 | 模組 | 功能 | 開發狀態 | 驗證狀態 | 說明 |
 |------|------|----------|----------|------|
@@ -101,7 +102,7 @@
 | api | FastAPI app + health/voices + M3 chunked synthesize；history/audio 待續 | 🟡 部分完成 | 🟢 health/voices/synthesize 已驗證 | TASK-001：`/api/health`；TASK-002：`/api/voices`；TASK-006/008：`POST /api/synthesize` 支援短稿與長稿，暫回 `audio/wav` bytes |
 | tts | prompt 組裝器 + Gemini adapter + 雙條件切塊器 + 長稿 synthesize 整合完成 | 🟢 M3 已完成 | 🟢 prompt/client/chunker/synthesize mock 已驗證 | TASK-003/004/007/008；`count_tokens` 僅算 prompt overhead，chunk 內容本地估算 |
 | audio | PCM→WAV + 多塊 concat | 🟢 M3 已完成 | 🟢 PCM/WAV/concat 已驗證 | TASK-005/008：24kHz mono 16-bit 預設、frame alignment、stdlib `wave` WAV 封裝、raw PCM 多塊串接 |
-| storage | SQLite + 檔案系統 | ⚫ 未開始 | ⚫ 未驗證 | M4 |
+| storage | SQLite metadata + 檔案系統 | 🟡 部分完成 | 🟡 SQLite CRUD 已驗證 | TASK-009：`storage/db.py` schema + create/list/get/delete 完成；`files.py`、history/audio 待續 |
 | ingest | markdown 正規化 | ⚫ 未開始 | ⚫ 未驗證 | M5 |
 | frontend | Next.js UI + 歷史 | ⚫ 未開始 | ⚫ 未驗證 | M6/M7 |
 
@@ -150,6 +151,11 @@
    - token 策略：Gemini `count_tokens` 只用於固定 prompt overhead；chunk 內容用本地 estimate，避免長 no-space input 造成大量遠端 token-count 呼叫。
    - 驗證：`backend/tests/` 156 passed；`backend/tests/test_synthesize.py backend/tests/test_pcm.py` 62 passed；`compileall` 與 `git diff --check` 通過；Codex CLI review 第三輪無 findings。
    - 殘留風險：尚未真實 Gemini 長稿/人耳播放驗證；感知接縫仍留 M8 manual regression。
+9. **TASK-009 review**
+   - 狀態：REVIEW PASS；已修正單元測試誤用 production default `data/app.sqlite` 的隔離問題，最終無 blocker。
+   - durable contract：`backend/app/storage/db.py` 建立 `syntheses` SQLite schema（含 `source` 預設 `text`，避免 M5 migration）與 create/list/get/delete；list 回 `items/total/limit/offset/has_more` 並以 `created_at DESC, rowid DESC` 穩定排序。
+   - 驗證：`backend/tests/test_storage_db.py` 24 passed；`backend/tests/` 180 passed；`compileall` 與 `git diff --check` 通過；Codex CLI review 無 findings。
+   - 殘留風險：`files.py` 安全路徑與 `synthesize` metadata/audio_url 整合仍待 TASK-010/011。
 
 ---
 
@@ -159,7 +165,7 @@
 - [x] **M1**: 後端骨架（TASK-001 health/config + TASK-002 voices pass）
 - [x] **M2**: 單塊短稿合成（TASK-003/004/005/006 pass，暫回 WAV bytes）
 - [x] **M3**: 切塊與串接（TASK-007/008 pass）
-- [ ] **M4**: 持久化與歷史（TASK-009 起）
+- [ ] **M4**: 持久化與歷史（TASK-009 SQLite metadata 已完成；TASK-010 files.py 待開）
 
 ### 最近完成
 
@@ -172,6 +178,7 @@
 - ✅ TASK-006：`POST /api/synthesize` 完成短稿單塊合成路由，整合 prompt builder、Gemini TTS adapter 與 PCM→WAV helper；M2 暫回 `audio/wav` bytes。
 - ✅ TASK-007：`tts/chunker.py` 完成雙條件切塊器，覆蓋完整 prompt token accounting、段落/句子 fallback、CJK/no-space/single long word fallback。
 - ✅ TASK-008：`POST /api/synthesize` 完成長稿逐塊合成與 raw PCM 多塊串接，維持暫時 `audio/wav` response；`count_tokens` 僅算 prompt overhead。
+- ✅ TASK-009：`storage/db.py` 完成 SQLite metadata schema + create/list/get/delete；分頁回 `items/total/limit/offset/has_more`，`source` 欄位已在 M4 建好。
 
 #### 上週
 - ✅ [完成項目 1]：待補充
@@ -199,7 +206,7 @@
 
 ### 待確認事項
 - [x] plan 已 approved；4 項建議決策（WAV / proxy / Director's Notes / 雙條件切塊）皆採用
-- [ ] 下一步銜接 TASK-009 SQLite schema + CRUD（分頁）。
+- [ ] 下一步銜接 TASK-010 `storage/files.py` 音檔存取 + 安全路徑。
 
 ### 討論備註
 [最近討論的重要內容...]
@@ -220,10 +227,11 @@
 | 2026-06-15 | TASK-006 `POST /api/synthesize` 短稿合成 | 通過 | REVIEW PASS；Critical/Major 無 blocker；16 synthesize tests、90 backend tests、compileall、diff check 通過 |
 | 2026-06-15 | TASK-007 `tts/chunker.py` 雙條件切塊 | 通過 | REVIEW PASS；Critical/Major/Minor/Suggestion 無 findings；45 chunker tests、135 backend tests、compileall、diff/whitespace checks 通過 |
 | 2026-06-15 | TASK-008 PCM 多塊串接 + 長稿 synthesize | 通過 | REVIEW PASS；已修正 per-candidate 遠端 count_tokens 風險；156 backend tests、compileall、diff check 通過 |
+| 2026-06-15 | TASK-009 `storage/db.py` SQLite schema + CRUD | 通過 | REVIEW PASS；已修正 singleton 測試隔離；24 storage DB tests、180 backend tests、compileall、diff check 通過 |
 
 ### 審查統計
-- 總審查次數：8
-- 通過審查：8
+- 總審查次數：9
+- 通過審查：9
 - 需修復：0
 
 ---
