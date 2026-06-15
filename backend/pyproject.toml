@@ -1,0 +1,23 @@
+[project]
+name = "txt2speech-backend"
+version = "0.1.0"
+description = "FastAPI backend for txt2speech — Gemini TTS speech practice tool"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "google-genai>=1.14.0",
+    "pydantic-settings>=2.7.0",
+    "markdown>=3.7",
+    "beautifulsoup4>=4.12.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "httpx>=0.28.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

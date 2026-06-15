@@ -36,7 +36,7 @@ data/
 *.sqlite
 *.sqlite3
 *.db
-audio/
+/data/audio/
 *.wav
 *.mp3
 *.pcm

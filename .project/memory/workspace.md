@@ -52,7 +52,8 @@
 - [x] 任務 1：以 /adf.design 定義專案大框架（完成）
 - [x] 任務 2：/adf.planner 產出 whole-project plan（已 approved）
 - [x] 任務 3：/adf.breakdown 拆出 18 個 TASK（tasks-2026-06-15-...md）
-- [ ] 任務 4：/adf.develop 從 TASK-001 開始實作（關鍵路徑 001→004→008→011→013→016→018）
+- [x] 任務 4：/adf.develop 完成 TASK-001 後端骨架 + config（code review / Codex app 仲裁驗證：REVIEW PASS）
+- [ ] 任務 5：下一步依關鍵路徑開 TASK-003/004/005；TASK-002 voices 可並行補齊 M1
 
 ### 當前技術挑戰
 1. **TTS 切塊 + PCM 串接品質**（最高風險）
@@ -70,7 +71,7 @@
    - 方向：tts/ adapter 為唯一 AI 邊界，隔離 API 變動
 
 ### 短期目標（本月）
-- 目標 1：取得 plan 批准 → breakdown / develop（M1→M8）
+- 目標 1：完成 M1（TASK-001 已 pass；TASK-002 voices 待做）
 - 目標 2：完成 M1–M4（後端骨架 + 合成 + 切塊串接 + 持久化/歷史）
 
 ### 待解決問題
@@ -84,12 +85,12 @@
 
 ## 📊 模組開發狀態
 
-*最後更新：待更新*
+*最後更新：2026-06-15（TASK-001 review pass / update-memory）*
 
 | 模組 | 功能 | 開發狀態 | 驗證狀態 | 說明 |
 |------|------|----------|----------|------|
-| config | 設定/金鑰 | ⚫ 未開始 | ⚫ 未驗證 | M1 |
-| api | 路由 synthesize/history/audio/voices | ⚫ 未開始 | ⚫ 未驗證 | M1/M4 |
+| config | 設定/金鑰 | 🟢 已完成 | 🟢 已驗證 | TASK-001：pydantic-settings 載入 `GEMINI_API_KEY`/`DATA_DIR`/`CORS_ORIGINS` |
+| api | FastAPI app + health；synthesize/history/audio/voices 待續 | 🟡 部分完成 | 🟢 health 已驗證 | TASK-001：`/api/health`；其餘路由待後續 TASK |
 | tts | Gemini adapter + 切塊 | ⚫ 未開始 | ⚫ 未驗證 | M2/M3，最高風險 |
 | audio | PCM→WAV 串接 | ⚫ 未開始 | ⚫ 未驗證 | M2/M3 |
 | storage | SQLite + 檔案系統 | ⚫ 未開始 | ⚫ 未驗證 | M4 |
@@ -104,17 +105,17 @@
 - 🟣 **需重構**: 功能可用但需要改進
 
 ### 🚨 問題與阻塞
-1. **[問題名稱]**
-   - 阻塞：待補充
-   - 負責人：待補充
-   - 預計解決：待補充
+1. **TASK-001 review**
+   - 狀態：REVIEW PASS；Critical/Major 無 blocker，acceptance criteria 已有 evidence。
+   - 驗證：缺 `GEMINI_API_KEY` 會報 `Field required`；假 key 可啟動 uvicorn；`/api/health` 回 200 `{"status":"ok"}`；`python3 -m compileall -q app` 與 `git diff --check` 通過。
+   - 殘留風險：尚未觸及 Gemini adapter、voices、synthesize/history/audio/storage；後續高風險仍是 TASK-004、TASK-007、TASK-008。
 
 ---
 
 ## 📈 進度追蹤
 
 ### 專案里程碑
-- [x] **M1**: 專案初始化
+- [ ] **M1**: 後端骨架（TASK-001 pass；TASK-002 voices 待做）
 - [ ] **M2**: 核心功能開發
 - [ ] **M3**: 測試和優化
 - [ ] **M4**: 部署上線
@@ -122,8 +123,7 @@
 ### 最近完成
 
 #### 本週
-- ✅ [完成項目 1]：待補充
-- ✅ [完成項目 2]：待補充
+- ✅ TASK-001：後端 FastAPI 骨架、pydantic-settings config、`/api/health`、`.env.example`、package init 完成；`.gitignore` 已改為只忽略 `/data/audio/`，避免 `backend/app/audio` 被忽略。
 
 #### 上週
 - ✅ [完成項目 1]：待補充
@@ -149,7 +149,7 @@
 
 ### 待確認事項
 - [x] plan 已 approved；4 項建議決策（WAV / proxy / Director's Notes / 雙條件切塊）皆採用
-- [ ] 是否先 commit 設計基線再進 develop
+- [ ] TASK-001 已通過 review/update-memory，進入 commit/push gate；下一步銜接 TASK-002 或關鍵路徑 TASK-003/004/005
 
 ### 討論備註
 [最近討論的重要內容...]
@@ -162,11 +162,11 @@
 
 | 日期 | 範圍 | 結果 | 說明 |
 |------|------|------|------|
-| [日期] | [審查範圍] | [通過/需修改] | [說明] |
+| 2026-06-15 | TASK-001 後端骨架 + config | 通過 | REVIEW PASS；Critical/Major 無 blocker；acceptance criteria 已有 evidence |
 
 ### 審查統計
-- 總審查次數：0
-- 通過審查：0
+- 總審查次數：1
+- 通過審查：1
 - 需修復：0
 
 ---

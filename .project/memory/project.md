@@ -55,11 +55,11 @@
 | 模組 | 功能 | 技術 | 狀態 |
 |------|------|------|------|
 | frontend | 講稿輸入（貼上 / 上傳 .md）、參數選項（voice/語速/風格）、播放器、歷史清單、下載 | Next.js + TS | ⚫ 未開始 |
-| api | `/api/synthesize`、`/api/history`、`/api/audio/{id}` 端點、md→純文字正規化、驗證、CORS | FastAPI | ⚫ 未開始 |
+| api | FastAPI app、CORS、`/api/health` 已落地；`/api/synthesize`、`/api/history`、`/api/audio/{id}`、md→純文字正規化待續 | FastAPI | 🟡 部分完成（TASK-001） |
 | tts | google-genai 呼叫、prompt 組裝（preamble+Director's Notes+TRANSCRIPT+inline tags）、雙條件切塊、回應健全性檢查+retry | google-genai | ⚫ 未開始 |
 | audio | 多塊 raw PCM 24kHz 串接 → WAV（MP3 選用 ffmpeg） | stdlib `wave` | ⚫ 未開始 |
 | storage | 持久化音檔（檔案系統）+ metadata（SQLite）、歷史分頁查詢 | SQLite + fs | ⚫ 未開始 |
-| config | `GEMINI_API_KEY`、設定管理 | pydantic-settings | ⚫ 未開始 |
+| config | `GEMINI_API_KEY`、`DATA_DIR`、`CORS_ORIGINS` 設定管理 | pydantic-settings | 🟢 已完成（TASK-001） |
 
 ### 設計模式
 - **Adapter**：以 `tts` 模組封裝 Gemini，隔離 preview 模型變動。
