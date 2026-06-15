@@ -57,7 +57,8 @@
 - [x] 任務 6：完成 TASK-003 `tts/prompt.py` prompt 組裝器（fixed 3 sections + note/voice sanitizer，review/app gate pass）
 - [x] 任務 7：完成 TASK-004 `tts/client.py` Gemini adapter（mock tests pass，lazy google import，review/app gate pass）
 - [x] 任務 8：完成 TASK-005 `audio/pcm.py` PCM→WAV（review/app gate pass）
-- [ ] 任務 9：下一步依關鍵路徑開 TASK-006 `POST /api/synthesize` 短稿合成（暫時回 WAV bytes）
+- [x] 任務 9：完成 TASK-006 `POST /api/synthesize` 短稿合成（M2 暫時回 WAV bytes，review pass）
+- [ ] 任務 10：下一步依 active plan 開 TASK-007 `tts/chunker.py` 雙條件切塊
 
 ### 當前技術挑戰
 1. **TTS 切塊 + PCM 串接品質**（最高風險）
@@ -89,12 +90,12 @@
 
 ## 📊 模組開發狀態
 
-*最後更新：2026-06-15（TASK-005 review pass / update-memory）*
+*最後更新：2026-06-15（TASK-006 review pass / update-memory）*
 
 | 模組 | 功能 | 開發狀態 | 驗證狀態 | 說明 |
 |------|------|----------|----------|------|
 | config | 設定/金鑰 | 🟢 已完成 | 🟢 已驗證 | TASK-001：pydantic-settings 載入 `GEMINI_API_KEY`/`DATA_DIR`/`CORS_ORIGINS` |
-| api | FastAPI app + health/voices；synthesize/history/audio 待續 | 🟡 部分完成 | 🟢 health/voices 已驗證 | TASK-001：`/api/health`；TASK-002：`/api/voices` 回 30 種 Gemini TTS voice |
+| api | FastAPI app + health/voices + M2 synthesize；history/audio 待續 | 🟡 部分完成 | 🟢 health/voices/synthesize 已驗證 | TASK-001：`/api/health`；TASK-002：`/api/voices`；TASK-006：短稿 `POST /api/synthesize` 串 prompt→Gemini adapter→PCM→WAV，暫回 `audio/wav` bytes |
 | tts | prompt 組裝器 + Gemini adapter 已完成；切塊待續 | 🟡 部分完成 | 🟢 prompt/client mock 已驗證 | TASK-003 prompt；TASK-004 client：lazy google import、audio inline_data 健全性檢查、retry/backoff、502/504 mapping、count_tokens |
 | audio | PCM→WAV 串接 | 🟡 部分完成 | 🟢 PCM→WAV 已驗證 | TASK-005：24kHz mono 16-bit 預設、frame alignment、stdlib `wave` WAV 封裝；多塊 concat/integration 待 TASK-008 |
 | storage | SQLite + 檔案系統 | ⚫ 未開始 | ⚫ 未驗證 | M4 |
@@ -112,7 +113,7 @@
 1. **TASK-001 review**
    - 狀態：REVIEW PASS；Critical/Major 無 blocker，acceptance criteria 已有 evidence。
    - 驗證：缺 `GEMINI_API_KEY` 會報 `Field required`；假 key 可啟動 uvicorn；`/api/health` 回 200 `{"status":"ok"}`；`python3 -m compileall -q app` 與 `git diff --check` 通過。
-   - 殘留風險：尚未觸及 Gemini adapter、voices、synthesize/history/audio/storage；後續高風險仍是 TASK-004、TASK-007、TASK-008。
+   - 殘留風險：Gemini adapter、voices、短稿 synthesize 已於後續 TASK 完成；剩餘高風險為 TASK-007/008 切塊與長稿串接。
 2. **TASK-002 review**
    - 狀態：REVIEW PASS；Critical/Major/Minor/Suggestion 皆無，未發現 out-of-scope diff。
    - 驗證：`python3 -m pytest tests/test_voices.py -v` 通過（7 passed）；`python3 -m compileall -q app tests/test_voices.py`、`git diff --check` 通過；live uvicorn `/api/voices` 回 `count=30 first=Zephyr last=Sulafat`。
@@ -124,11 +125,17 @@
 4. **TASK-004 review**
    - 狀態：REVIEW PASS；Critical/Major 無 blocker，Minor line-length 已於提交前修正。
    - 驗證：`python3 -m pytest backend/tests/ -v` 通過（49 passed）；`python3 -m compileall -q backend/app/tts/client.py backend/tests/test_client.py` 通過；backend `.venv` 可建立 `GenerateContentConfig` speech_config/voice config。
-   - 殘留風險：尚未打真 Gemini API；真實 TTS 與 `/api/synthesize` integration 屬 TASK-006，TASK-004 僅 mock adapter 驗收。
+   - 殘留風險：`/api/synthesize` integration 已於 TASK-006 完成；真實 Gemini API 呼叫仍待手動驗證。
 5. **TASK-005 review**
    - 狀態：REVIEW PASS；Critical/Major/Minor/Suggestion 無 blocker，未發現 out-of-scope diff。
    - 驗證：`python3 -m pytest backend/tests/test_pcm.py -v` 通過（25 passed）；`python3 -m pytest backend/tests/ -v` 通過（74 passed）；`python3 -m compileall -q backend/app/audio/pcm.py backend/tests/test_pcm.py`、`git diff --check`、行寬/trailing whitespace 檢查皆通過。
-   - 殘留風險：多塊 raw PCM 串接與 `/api/synthesize` 整合尚未完成；TASK-006 先接短稿，TASK-008 再補長稿串接與感知層人耳回歸。
+   - 殘留風險：短稿 `/api/synthesize` 整合已於 TASK-006 完成；多塊 raw PCM 串接與感知層人耳回歸待 TASK-008。
+6. **TASK-006 review**
+   - 狀態：REVIEW PASS；Critical/Major 無 blocker。
+   - durable contract：M2 `POST /api/synthesize` 直接回 `audio/wav` bytes；M4 才切換 `{id, created_at, metadata, audio_url}` 與 storage/metadata 流程。
+   - 驗證：`text`/`voice` whitespace-only 回 422；`voice` strip 後送 client；transcript text 保留原始內容；`TtsClientError` 依 `status_code` 回應；PCM/WAV conversion 問題回 502。
+   - 證據：`backend/tests/test_synthesize.py` 16 passed；`backend/tests/` 90 passed；`compileall` 通過；`git diff --check` 通過。
+   - 殘留風險：尚未做真實 Gemini API 呼叫、人耳播放檢查、storage/chunking/audio_url metadata；下一步 TASK-007。
 
 ---
 
@@ -136,7 +143,7 @@
 
 ### 專案里程碑
 - [x] **M1**: 後端骨架（TASK-001 health/config + TASK-002 voices pass）
-- [ ] **M2**: 核心功能開發
+- [x] **M2**: 單塊短稿合成（TASK-003/004/005/006 pass，暫回 WAV bytes）
 - [ ] **M3**: 測試和優化
 - [ ] **M4**: 部署上線
 
@@ -148,6 +155,7 @@
 - ✅ TASK-003：`tts/prompt.py` 組固定 preamble + `### DIRECTOR'S NOTES` + `### TRANSCRIPT`；保留 transcript inline tags，對 voice/style/pacing/accent 做單行 sanitizer。
 - ✅ TASK-004：`tts/client.py` 封裝 Gemini TTS 單塊 adapter、audio response 健全性檢查、retry/backoff、502/504 mapping 與 `count_tokens`。
 - ✅ TASK-005：`audio/pcm.py` 提供 raw PCM 24kHz mono 16-bit 預設、frame alignment 檢查與 stdlib `wave` WAV 封裝。
+- ✅ TASK-006：`POST /api/synthesize` 完成短稿單塊合成路由，整合 prompt builder、Gemini TTS adapter 與 PCM→WAV helper；M2 暫回 `audio/wav` bytes。
 
 #### 上週
 - ✅ [完成項目 1]：待補充
@@ -170,10 +178,11 @@
 | 2026-06-15 | 輸出 WAV（raw PCM 串接，免 ffmpeg）；前後端用 next rewrites proxy | 降依賴、免 CORS | plan 決策表 |
 | 2026-06-15 | TTS 控制用 Director's Notes(Style/Pacing/Accent)+inline tags，寫入 contents | 官方確認語法；語速/重點可控，免教練 LLM | ADR-001 |
 | 2026-06-15 | validate-plan=WARN，修 5 項 contract drift（/api/* 統一、雙條件切塊、TTS retry/空音訊、WAV 去 ffmpeg、M2 暫時 contract）+ 定 Q3/Q4 | 進 breakdown 前收斂漂移 | plan |
+| 2026-06-15 | TASK-006 維持 M2 暫時 contract：`POST /api/synthesize` 回 `audio/wav` bytes，M4 才回 `{id, created_at, metadata, audio_url}` | 讓短稿合成先驗 prompt/client/PCM→WAV integration，避免提前拉入 storage/metadata 複雜度 | plan M2/M4 |
 
 ### 待確認事項
 - [x] plan 已 approved；4 項建議決策（WAV / proxy / Director's Notes / 雙條件切塊）皆採用
-- [ ] TASK-005 已通過 review/app gate/update-memory，進入 commit gate；下一步銜接 TASK-006 `POST /api/synthesize` 短稿合成（暫時 contract：回 WAV bytes）
+- [ ] 下一步銜接 TASK-007 `tts/chunker.py` 雙條件切塊。
 
 ### 討論備註
 [最近討論的重要內容...]
@@ -191,10 +200,11 @@
 | 2026-06-15 | TASK-003 `tts/prompt.py` prompt 組裝器 | 通過 | REVIEW PASS；已修正 note/voice section marker injection；32 backend tests 通過 |
 | 2026-06-15 | TASK-004 `tts/client.py` Gemini adapter | 通過 | REVIEW PASS；mock 覆蓋 normal/invalid/timeout/count_tokens；49 backend tests 通過 |
 | 2026-06-15 | TASK-005 `audio/pcm.py` PCM→WAV | 通過 | REVIEW PASS；frame alignment/WAV header/frame count/roundtrip/custom params 已覆蓋；74 backend tests 通過 |
+| 2026-06-15 | TASK-006 `POST /api/synthesize` 短稿合成 | 通過 | REVIEW PASS；Critical/Major 無 blocker；16 synthesize tests、90 backend tests、compileall、diff check 通過 |
 
 ### 審查統計
-- 總審查次數：5
-- 通過審查：5
+- 總審查次數：6
+- 通過審查：6
 - 需修復：0
 
 ---

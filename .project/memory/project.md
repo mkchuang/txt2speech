@@ -55,7 +55,7 @@
 | 模組 | 功能 | 技術 | 狀態 |
 |------|------|------|------|
 | frontend | 講稿輸入（貼上 / 上傳 .md）、參數選項（voice/語速/風格）、播放器、歷史清單、下載 | Next.js + TS | ⚫ 未開始 |
-| api | FastAPI app、CORS、`/api/health` 與 `/api/voices` 已落地；`/api/synthesize`、`/api/history`、`/api/audio/{id}`、md→純文字正規化待續 | FastAPI | 🟡 部分完成（TASK-001/002） |
+| api | FastAPI app、CORS、`/api/health`、`/api/voices` 與 M2 短稿 `POST /api/synthesize` 已落地；history/audio、md→純文字正規化待續 | FastAPI | 🟡 部分完成（TASK-001/002/006） |
 | tts | prompt 組裝與 Gemini adapter 已落地（fixed prompt sections；lazy google-genai import；audio inline_data 健全性檢查+retry；502/504 mapping；count_tokens）；雙條件切塊待續 | google-genai | 🟡 部分完成（TASK-003/004） |
 | audio | raw PCM 24kHz mono 16-bit → WAV 封裝與 frame alignment 已落地；多塊串接/長稿整合待續 | stdlib `wave` | 🟡 部分完成（TASK-005） |
 | storage | 持久化音檔（檔案系統）+ metadata（SQLite）、歷史分頁查詢 | SQLite + fs | ⚫ 未開始 |
@@ -71,7 +71,7 @@
 - 後端 → Gemini：`google-genai` SDK（HTTPS）。
 
 ### API 端點（草案）
-- `POST /api/synthesize`：文字/md + 參數 → 合成、存歷史，回傳 record id 與 metadata。
+- `POST /api/synthesize`：M2 暫時 contract 直接回 `audio/wav` bytes；M4 將改為 `{id, created_at, metadata, audio_url}` 並接 storage/metadata 流程。
 - `GET /api/history?limit=50&offset=0`：歷史清單分頁，回 `items/total/limit/offset/has_more`。
 - `GET /api/audio/{id}`：serve 音檔，支援線上播放（Range）與下載（`?download=1`）。
 - `GET /api/voices`：回 30 種預建 voice 清單（前端下拉選單）。
