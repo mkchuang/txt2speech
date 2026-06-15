@@ -6,7 +6,7 @@
 
 ## 模組總覽
 
-> 狀態：plan-2026-06-15 已 approved；TASK-001 已落地後端 skeleton/config/health，TASK-002 已落地 `/api/voices`，TASK-003/004 已落地 prompt 組裝器與 Gemini adapter，其他模組仍依 task backlog 推進。
+> 狀態：plan-2026-06-15 已 approved；TASK-001 已落地後端 skeleton/config/health，TASK-002 已落地 `/api/voices`，TASK-003/004 已落地 prompt 組裝器與 Gemini adapter，TASK-005 已落地 PCM→WAV helper，其他模組仍依 task backlog 推進。
 
 | 模組 | 目錄 | 行為摘要 | 分析深度 | 最後更新 |
 |------|------|---------|---------|---------|
@@ -14,7 +14,7 @@
 | api | backend/app/api/ | FastAPI app + /api/health、/api/voices 已實作且驗證；synthesize / history / audio 路由待續 | 🟡 部分實作 | 2026-06-15 |
 | ingest | backend/app/ingest/ | markdown→純文字正規化 | 📋 規劃 | 2026-06-15 |
 | tts | backend/app/tts/ | prompt 組裝器 + Gemini adapter 已實作：lazy SDK import、audio inline_data 檢查、retry/backoff、502/504 mapping、count_tokens；chunker 待續 | 🟡 部分實作 | 2026-06-15 |
-| audio | backend/app/audio/ | 多塊 raw PCM 串接 → WAV（stdlib wave） | 📋 規劃 | 2026-06-15 |
+| audio | backend/app/audio/ | TASK-005 已提供 24kHz mono 16-bit raw PCM 預設、frame alignment 檢查與 stdlib `wave` WAV 封裝；多塊 concat/integration 待 TASK-008 | 🟡 部分實作 / ✅ PCM 已驗證 | 2026-06-15 |
 | storage | backend/app/storage/ | SQLite metadata + 檔案系統音檔、歷史 CRUD | 📋 規劃 | 2026-06-15 |
 | frontend | frontend/ | Next.js UI：輸入/參數/播放器/歷史清單 | 📋 規劃 | 2026-06-15 |
 

@@ -57,7 +57,7 @@
 | frontend | 講稿輸入（貼上 / 上傳 .md）、參數選項（voice/語速/風格）、播放器、歷史清單、下載 | Next.js + TS | ⚫ 未開始 |
 | api | FastAPI app、CORS、`/api/health` 與 `/api/voices` 已落地；`/api/synthesize`、`/api/history`、`/api/audio/{id}`、md→純文字正規化待續 | FastAPI | 🟡 部分完成（TASK-001/002） |
 | tts | prompt 組裝與 Gemini adapter 已落地（fixed prompt sections；lazy google-genai import；audio inline_data 健全性檢查+retry；502/504 mapping；count_tokens）；雙條件切塊待續 | google-genai | 🟡 部分完成（TASK-003/004） |
-| audio | 多塊 raw PCM 24kHz 串接 → WAV（MP3 選用 ffmpeg） | stdlib `wave` | ⚫ 未開始 |
+| audio | raw PCM 24kHz mono 16-bit → WAV 封裝與 frame alignment 已落地；多塊串接/長稿整合待續 | stdlib `wave` | 🟡 部分完成（TASK-005） |
 | storage | 持久化音檔（檔案系統）+ metadata（SQLite）、歷史分頁查詢 | SQLite + fs | ⚫ 未開始 |
 | config | `GEMINI_API_KEY`、`DATA_DIR`、`CORS_ORIGINS` 設定管理 | pydantic-settings | 🟢 已完成（TASK-001） |
 
