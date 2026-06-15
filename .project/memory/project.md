@@ -55,9 +55,9 @@
 | 模組 | 功能 | 技術 | 狀態 |
 |------|------|------|------|
 | frontend | 講稿輸入（貼上 / 上傳 .md）、參數選項（voice/語速/風格）、播放器、歷史清單、下載 | Next.js + TS | ⚫ 未開始 |
-| api | FastAPI app、CORS、`/api/health`、`/api/voices` 與 M2 短稿 `POST /api/synthesize` 已落地；history/audio、md→純文字正規化待續 | FastAPI | 🟡 部分完成（TASK-001/002/006） |
-| tts | prompt 組裝、Gemini adapter 與雙條件切塊器已落地（完整 prompt token accounting；段落/句子/char fallback；lazy google-genai import；audio inline_data 健全性檢查+retry；502/504 mapping；count_tokens）；long synthesize 整合待 TASK-008 | google-genai | 🟡 部分完成（TASK-003/004/007） |
-| audio | raw PCM 24kHz mono 16-bit → WAV 封裝與 frame alignment 已落地；多塊串接/長稿整合待續 | stdlib `wave` | 🟡 部分完成（TASK-005） |
+| api | FastAPI app、CORS、`/api/health`、`/api/voices` 與 M3 `POST /api/synthesize` 長稿切塊合成已落地；history/audio、md→純文字正規化待續 | FastAPI | 🟡 部分完成（TASK-001/002/006/008） |
+| tts | prompt 組裝、Gemini adapter 與雙條件切塊器已落地（完整 prompt token accounting；段落/句子/char fallback；lazy google-genai import；audio inline_data 健全性檢查+retry；502/504 mapping；Gemini `count_tokens` 僅用於 prompt overhead，chunk 內容用本地估算避免逐 candidate 遠端呼叫） | google-genai | 🟢 M3 已完成（TASK-003/004/007/008） |
+| audio | raw PCM 24kHz mono 16-bit → WAV 封裝、frame alignment 與多塊 raw PCM concat 已落地，長稿路由會串接後一次封裝 WAV | stdlib `wave` | 🟢 M3 已完成（TASK-005/008） |
 | storage | 持久化音檔（檔案系統）+ metadata（SQLite）、歷史分頁查詢 | SQLite + fs | ⚫ 未開始 |
 | config | `GEMINI_API_KEY`、`DATA_DIR`、`CORS_ORIGINS` 設定管理 | pydantic-settings | 🟢 已完成（TASK-001） |
 
@@ -97,7 +97,7 @@
 - 後端為唯一對外呼叫 Gemini 的出口，前端不直接持金鑰。
 
 ## ⚠️ 主要風險與未決問題
-- **TTS 輸入 8192-token 上限**：TASK-007 已完成雙條件切塊器；長稿仍需於 TASK-008 整合真實 Gemini `count_tokens`、逐塊合成與 PCM 串接接縫處理（最高風險）。
+- **TTS 輸入 8192-token 上限**：TASK-007/008 已完成雙條件切塊與長稿逐塊合成；實作只用 Gemini `count_tokens` 計算固定 prompt overhead，chunk 內容用本地估算以避免大量遠端 token-count 呼叫。殘留風險為真實 Gemini 長稿與感知接縫人耳回歸。
 - **語速控制方式**（已降為低風險）：經官方文件確認可用 Director's Notes `Pacing:` + inline `[very slow/fast]` 控制，寫在 prompt 內；細部以實測微調。
 - **SynthID 浮水印**：Gemini TTS 所有輸出皆內嵌隱形 AI 浮水印（產品事實，無需處理，使用者知悉即可）。
 - **Preview 模型變動**：`gemini-3.1-flash-tts-preview` 為 preview，API 可能變動，以 adapter 隔離。

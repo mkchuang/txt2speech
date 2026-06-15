@@ -1,5 +1,6 @@
 import io
 import wave
+from collections.abc import Sequence
 
 SAMPLE_RATE_HZ: int = 24000
 CHANNELS: int = 1
@@ -56,6 +57,38 @@ def validate_frame_alignment(
             f"frame_size={fs} (channels={channels}, "
             f"sample_width_bytes={sample_width_bytes})"
         )
+
+
+def concat_pcm_blocks(
+    pcm_blocks: Sequence[bytes],
+    channels: int = CHANNELS,
+    sample_width_bytes: int = SAMPLE_WIDTH_BYTES,
+) -> bytes:
+    """Concatenate multiple raw PCM blocks into a single PCM byte sequence.
+
+    Each block is validated for frame alignment before concatenation.
+
+    Args:
+        pcm_blocks: List of raw PCM byte sequences (non-empty, all frame-aligned).
+        channels: Number of audio channels (default 1).
+        sample_width_bytes: Bytes per sample (default 2).
+
+    Returns:
+        Concatenated raw PCM bytes.
+
+    Raises:
+        PcmAudioError: If no blocks provided or any block is not frame-aligned.
+    """
+    if not pcm_blocks:
+        raise PcmAudioError("pcm_blocks must not be empty")
+    _validate_params(
+        sample_rate_hz=1,
+        channels=channels,
+        sample_width_bytes=sample_width_bytes,
+    )
+    for block in pcm_blocks:
+        validate_frame_alignment(block, channels, sample_width_bytes)
+    return b"".join(pcm_blocks)
 
 
 def pcm_to_wav_bytes(

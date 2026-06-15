@@ -1,4 +1,6 @@
 import io
+import math
+import struct
 import wave
 
 import pytest
@@ -8,6 +10,7 @@ from app.audio.pcm import (
     PcmAudioError,
     SAMPLE_RATE_HZ,
     SAMPLE_WIDTH_BYTES,
+    concat_pcm_blocks,
     frame_size,
     pcm_to_wav_bytes,
     validate_frame_alignment,
@@ -168,3 +171,93 @@ class TestWavOutput:
         wav_bytes = pcm_to_wav_bytes(pcm)
         with wave.open(io.BytesIO(wav_bytes), "rb") as wf:
             assert wf.getnframes() == 50
+
+
+class TestConcatPcmBlocks:
+    def test_empty_blocks_raises(self) -> None:
+        with pytest.raises(PcmAudioError, match="must not be empty"):
+            concat_pcm_blocks([])
+
+    def test_single_block_identity(self) -> None:
+        pcm = _make_pcm(80)
+        result = concat_pcm_blocks([pcm])
+        assert result == pcm
+
+    def test_two_blocks_byte_concatenation(self) -> None:
+        b1 = _make_pcm(100)
+        b2 = _make_pcm(200)
+        result = concat_pcm_blocks([b1, b2])
+        assert len(result) == len(b1) + len(b2)
+        assert result == b1 + b2
+
+    def test_total_frames_equal_sum_of_individual(self) -> None:
+        block_frames = [50, 200, 30, 120]
+        blocks = [_make_pcm(nf) for nf in block_frames]
+        concat = concat_pcm_blocks(blocks)
+        wav_bytes = pcm_to_wav_bytes(concat)
+        with wave.open(io.BytesIO(wav_bytes), "rb") as wf:
+            assert wf.getnframes() == sum(block_frames)
+
+    def test_unaligned_block_raises(self) -> None:
+        with pytest.raises(PcmAudioError, match="not a multiple of"):
+            concat_pcm_blocks([b"\x00\x01\x02"])
+
+    def test_unaligned_second_block_raises(self) -> None:
+        b1 = _make_pcm(50)
+        with pytest.raises(PcmAudioError, match="not a multiple of"):
+            concat_pcm_blocks([b1, b"\x00\x01\x02"])
+
+    def test_sine_wave_fixed_multi_block_roundtrip(self) -> None:
+        sample_rate = 24000
+        freq = 440.0
+        partition = [100, 150, 80, 150]
+        all_samples: list[int] = []
+        offset = 0
+        for part_count in partition:
+            for i in range(part_count):
+                t = (offset + i) / sample_rate
+                all_samples.append(
+                    int(16000.0 * math.sin(2.0 * math.pi * freq * t))
+                )
+            offset += part_count
+        blocks: list[bytes] = []
+        pos = 0
+        for part_count in partition:
+            buf = io.BytesIO()
+            for s in all_samples[pos : pos + part_count]:
+                buf.write(struct.pack("<h", max(-32768, min(32767, s))))
+            blocks.append(buf.getvalue())
+            pos += part_count
+        result = concat_pcm_blocks(blocks)
+        expected = b"".join(blocks)
+        assert result == expected
+        recovered = struct.unpack(f"<{len(all_samples)}h", result)
+        assert recovered == tuple(all_samples)
+
+    def test_multi_block_roundtrip_equals_single_block(self) -> None:
+        b1 = _make_pcm(100)
+        b2 = _make_pcm(150)
+        b3 = _make_pcm(80)
+        concat = concat_pcm_blocks([b1, b2, b3])
+        combined = b1 + b2 + b3
+        assert concat == combined
+        assert pcm_to_wav_bytes(concat) == pcm_to_wav_bytes(combined)
+
+    def test_stereo_multi_block(self) -> None:
+        nf = 60
+        fs = 4  # 2 channels * 2 bytes
+        pattern = bytes(i % 256 for i in range(nf * fs))
+        b1 = pattern[: nf // 2 * fs]
+        b2 = pattern[nf // 2 * fs :]
+        result = concat_pcm_blocks([b1, b2], channels=2)
+        assert result == pattern
+        wav_bytes = pcm_to_wav_bytes(result, channels=2)
+        with wave.open(io.BytesIO(wav_bytes), "rb") as wf:
+            assert wf.getnchannels() == 2
+            assert wf.getnframes() == nf
+            assert wf.readframes(nf) == pattern
+
+    def test_invalid_channels_in_block_raises(self) -> None:
+        pcm_ok = _make_pcm(20)
+        with pytest.raises(PcmAudioError, match="not a multiple of"):
+            concat_pcm_blocks([pcm_ok, b"\x00\x01\x02"])

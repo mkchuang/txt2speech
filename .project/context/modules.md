@@ -6,15 +6,15 @@
 
 ## 模組總覽
 
-> 狀態：plan-2026-06-15 已 approved；TASK-001 已落地後端 skeleton/config/health，TASK-002 已落地 `/api/voices`，TASK-003/004 已落地 prompt 組裝器與 Gemini adapter，TASK-005 已落地 PCM→WAV helper，TASK-006 已落地 M2 短稿 `POST /api/synthesize`（暫回 WAV bytes），TASK-007 已落地雙條件切塊器；其他模組仍依 task backlog 推進。
+> 狀態：plan-2026-06-15 已 approved；TASK-001 已落地後端 skeleton/config/health，TASK-002 已落地 `/api/voices`，TASK-003/004 已落地 prompt 組裝器與 Gemini adapter，TASK-005 已落地 PCM→WAV helper，TASK-006 已落地 M2 短稿 `POST /api/synthesize`（暫回 WAV bytes），TASK-007 已落地雙條件切塊器，TASK-008 已落地 PCM 多塊串接與長稿 synthesize；其他模組仍依 task backlog 推進。
 
 | 模組 | 目錄 | 行為摘要 | 分析深度 | 最後更新 |
 |------|------|---------|---------|---------|
 | config | backend/app/config.py | 載入 GEMINI_API_KEY / DATA_DIR / CORS 設定；缺 key 啟動 gate 已驗證 | ✅ 已驗證 | 2026-06-15 |
-| api | backend/app/api/ | FastAPI app + `/api/health`、`/api/voices`、M2 短稿 `POST /api/synthesize` 已實作且驗證；synthesize 暫回 `audio/wav` bytes，M4 才切 metadata/audio_url；history/audio 待續 | 🟡 部分實作 / ✅ synthesize 已驗證 | 2026-06-15 |
+| api | backend/app/api/ | FastAPI app + `/api/health`、`/api/voices`、M3 `POST /api/synthesize` 已實作且驗證；synthesize 目前支援 chunked long text 但仍暫回 `audio/wav` bytes，M4 才切 metadata/audio_url；history/audio 待續 | 🟡 部分實作 / ✅ synthesize 已驗證 | 2026-06-15 |
 | ingest | backend/app/ingest/ | markdown→純文字正規化 | 📋 規劃 | 2026-06-15 |
-| tts | backend/app/tts/ | prompt 組裝器 + Gemini adapter 已由 TASK-006 短稿路由整合；TASK-007 chunker 已支援 token/char 雙條件、完整 prompt token accounting、段落/句子/CJK/no-space fallback；TASK-008 待整合真實 count_tokens 與 long synthesize | 🟡 部分實作 / ✅ chunker 已驗證 | 2026-06-15 |
-| audio | backend/app/audio/ | TASK-005 已提供 24kHz mono 16-bit raw PCM 預設、frame alignment 檢查與 stdlib `wave` WAV 封裝；TASK-006 已用於短稿 WAV response；多塊 concat 待 TASK-008 | 🟡 部分實作 / ✅ PCM 已驗證 | 2026-06-15 |
+| tts | backend/app/tts/ | prompt 組裝器 + Gemini adapter + chunker 已由 `POST /api/synthesize` 整合；長稿 path 使用 prompt overhead token count + 本地 chunk 估算，避免 per-candidate 遠端 `count_tokens` | 🟢 M3 已驗證 | 2026-06-15 |
+| audio | backend/app/audio/ | TASK-005 已提供 24kHz mono 16-bit raw PCM 預設、frame alignment 與 stdlib `wave` WAV 封裝；TASK-008 新增多塊 concat，長稿路由串接後一次封裝 WAV | 🟢 M3 已驗證 | 2026-06-15 |
 | storage | backend/app/storage/ | SQLite metadata + 檔案系統音檔、歷史 CRUD | 📋 規劃 | 2026-06-15 |
 | frontend | frontend/ | Next.js UI：輸入/參數/播放器/歷史清單 | 📋 規劃 | 2026-06-15 |
 
