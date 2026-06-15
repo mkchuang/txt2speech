@@ -1,7 +1,7 @@
 # 專案全貌 - Project Overview
 
 > 此文件描述專案的靜態資訊，較少變動
-> 最後更新：2026-06-15（由 /adf.design 初始化）
+> 最後更新：2026-06-16（TASK-018 baseline completion）
 
 ## 🎯 專案簡介
 
@@ -54,7 +54,7 @@
 
 | 模組 | 功能 | 技術 | 狀態 |
 |------|------|------|------|
-| frontend | App Router + TypeScript scaffold、`/api/:path*` 同路徑 rewrite proxy、主頁 UI、api-client、AudioPlayer、HistoryList 已建立；history 支援 50 筆初載、Load more、播放、下載、刪除，synthesize 成功後 refresh | Next.js + TS | 🟢 M7 前端歷史已完成（TASK-015/016/017）；下一步 M8/TASK-018 e2e + README + 環境檔 |
+| frontend | App Router + TypeScript scaffold、`/api/:path*` 同路徑 rewrite proxy、主頁 UI、api-client、AudioPlayer、HistoryList 已建立；history 支援 50 筆初載、Load more、播放、下載、刪除，synthesize 成功後 refresh；README/.env.example/test_config 已補齊 | Next.js + TS | 🟢 M8 baseline 已完成（TASK-015/016/017/018；real Gemini via Next proxy e2e pass） |
 | api | FastAPI app、CORS、`/api/health`、`/api/voices`、`POST /api/synthesize` 長稿切塊合成 + metadata/audio_url contract、history 分頁/DELETE、audio Range/下載已落地；`source='md'` 會先 markdown→plain text 後合成並寫 metadata | FastAPI | 🟢 後端 M5 已完成（TASK-001/002/006/008/011/012/013/014） |
 | ingest | markdown→plain text normalizer：heading/list/code/link/paragraph 等純文字化，供 `POST /api/synthesize source='md'` 使用 | Python markdown + BeautifulSoup | 🟢 M5 已完成（TASK-014） |
 | tts | prompt 組裝、Gemini adapter 與雙條件切塊器已落地（完整 prompt token accounting；段落/句子/char fallback；lazy google-genai import；audio inline_data 健全性檢查+retry；502/504 mapping；Gemini `count_tokens` 僅用於 prompt overhead，chunk 內容用本地估算避免逐 candidate 遠端呼叫） | google-genai | 🟢 M3 已完成（TASK-003/004/007/008） |
@@ -98,12 +98,12 @@
 - 後端為唯一對外呼叫 Gemini 的出口，前端不直接持金鑰。
 
 ## ⚠️ 主要風險與未決問題
-- **TTS 輸入 8192-token 上限**：TASK-007/008 已完成雙條件切塊與長稿逐塊合成；實作只用 Gemini `count_tokens` 計算固定 prompt overhead，chunk 內容用本地估算以避免大量遠端 token-count 呼叫。殘留風險為真實 Gemini 長稿與感知接縫人耳回歸。
+- **TTS 輸入 8192-token 上限**：TASK-007/008 已完成雙條件切塊與長稿逐塊合成；實作只用 Gemini `count_tokens` 計算固定 prompt overhead，chunk 內容用本地估算以避免大量遠端 token-count 呼叫。TASK-018 已以 real Gemini via Next proxy 驗證 HTTP 200、有效 WAV、下載、history 與前端頁面；殘留為 pronunciation / pacing / long seam 人耳回歸。
 - **語速控制方式**（已降為低風險）：經官方文件確認可用 Director's Notes `Pacing:` + inline `[very slow/fast]` 控制，寫在 prompt 內；細部以實測微調。
 - **SynthID 浮水印**：Gemini TTS 所有輸出皆內嵌隱形 AI 浮水印（產品事實，無需處理，使用者知悉即可）。
 - **Preview 模型變動**：`gemini-3.1-flash-tts-preview` 為 preview，API 可能變動，以 adapter 隔離。
 - **Markdown 正規化語意保留**：TASK-014 已覆蓋 heading/list/code/link/paragraph 等純文字化；殘留風險為特殊 Markdown/HTML 表格或巢狀結構的朗讀語意需在前端上傳與真實講稿回歸時觀察。
-- **前後端協調**：TASK-015/016/017 已落地 Next.js rewrites、主頁 UI、api-client、AudioPlayer 與 HistoryList；App gate 以 mock backend + Next dev 驗證文字/.md 輸入、history 分頁/播放/下載/刪除與 mobile 390 無水平 overflow。殘留風險集中在 TASK-018：真實 Gemini / 人耳 playback、README 與環境檔回歸。
+- **前後端協調**：TASK-015/016/017/018 已落地 Next.js rewrites、主頁 UI、api-client、AudioPlayer、HistoryList、README 與環境檔；mock app gate 與 real Gemini via Next proxy e2e 皆通過。剩餘風險只保留人耳 pronunciation / pacing / long seam manual residual。
 - **成本與速率限制**：不做快取，每次重新產生會持續消耗音訊 tokens（已知取捨）。
 
 ## 🗺️ 範圍（單一 Phase）
