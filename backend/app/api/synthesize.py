@@ -1,18 +1,22 @@
-"""POST /api/synthesize — M3 chunked synthesis (temporary internal contract).
+"""POST /api/synthesize — chunked synthesis with persistence.
 
-M4 will replace this endpoint to return JSON:
-    {id, created_at, metadata, audio_url}
-instead of raw audio/wav bytes. Frontend MUST NOT depend on this M2 shape.
+Returns JSON:
+    {id, created_at, metadata, audio_url=/api/audio/{id}}
+
+On failure records status=error in DB.
 """
 
 import logging
+import uuid
 
 from fastapi import APIRouter, Depends
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
 from app.audio.pcm import PcmAudioError, concat_pcm_blocks, pcm_to_wav_bytes
 from app.config import settings
+from app.storage.db import Database, get_database
+from app.storage.files import delete_audio, resolve_audio_path, save_audio
 from app.tts.chunker import ChunkingError, chunk_transcript
 from app.tts.client import GeminiTtsClient, TtsClientError
 from app.tts.prompt import build_prompt
@@ -21,10 +25,16 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+TEXT_EXCERPT_MAX_LEN = 200
+
 
 class SynthesizeRequest(BaseModel):
-    text: str = Field(..., min_length=1, description="Transcript text to synthesize")
-    voice: str = Field(..., min_length=1, description="Voice name (e.g. Puck, Zephyr)")
+    text: str = Field(
+        ..., min_length=1, description="Transcript text to synthesize"
+    )
+    voice: str = Field(
+        ..., min_length=1, description="Voice name (e.g. Puck, Zephyr)"
+    )
     style: str = Field(default="", description="Delivery style")
     pacing: str = Field(default="", description="Delivery pacing")
     accent: str = Field(default="", description="Pronunciation accent")
@@ -42,6 +52,10 @@ class SynthesizeRequest(BaseModel):
 
 def get_tts_client() -> GeminiTtsClient:
     return GeminiTtsClient(api_key=settings.GEMINI_API_KEY)
+
+
+def get_db() -> Database:
+    return get_database()
 
 
 def _resolve_prompt_overhead_tokens(
@@ -84,15 +98,59 @@ def _chunk_request(
     )
 
 
-@router.post("/api/synthesize")
+def _text_excerpt(text: str) -> str:
+    if len(text) <= TEXT_EXCERPT_MAX_LEN:
+        return text
+    return text[:TEXT_EXCERPT_MAX_LEN]
+
+
+def _build_metadata(request: SynthesizeRequest) -> dict:
+    return {
+        "text_excerpt": _text_excerpt(request.text),
+        "char_count": len(request.text),
+        "voice": request.voice,
+        "pacing": request.pacing,
+        "style": request.style,
+        "accent": request.accent,
+    }
+
+
+def _record_error(
+    db: Database,
+    record_id: str,
+    request: SynthesizeRequest,
+) -> None:
+    try:
+        db.create(
+            record_id=record_id,
+            text_excerpt=_text_excerpt(request.text),
+            char_count=len(request.text),
+            voice=request.voice,
+            format="wav",
+            audio_path=str(resolve_audio_path(record_id)),
+            status="error",
+            pacing=request.pacing or None,
+            style=request.style or None,
+            accent=request.accent or None,
+        )
+    except Exception:
+        logger.exception("Failed to record error synthesis status id=%s", record_id)
+
+
+def _error_response(record_id: str, detail: str, status_code: int) -> JSONResponse:
+    return JSONResponse(
+        content={"id": record_id, "detail": detail},
+        status_code=status_code,
+    )
+
+
+@router.post("/api/synthesize", response_model=None)
 async def synthesize(
     request: SynthesizeRequest,
     tts_client: GeminiTtsClient = Depends(get_tts_client),
-) -> Response:
-    # --- Temporary contract: returns raw audio/wav bytes ---
-    # M4 will change this to return JSON: {id, created_at, metadata, audio_url}
-    # Frontend MUST NOT depend on this M2 response shape.
-    # ------------------------------------------------------------
+    db: Database = Depends(get_db),
+) -> dict | JSONResponse:
+    record_id = str(uuid.uuid4())
 
     prompt_overhead_tokens = _resolve_prompt_overhead_tokens(
         tts_client,
@@ -106,13 +164,15 @@ async def synthesize(
         )
     except ChunkingError as e:
         logger.error("Chunking error: %s", e)
-        return Response(content=str(e), status_code=422, media_type="text/plain")
+        _record_error(db, record_id, request)
+        return _error_response(record_id, str(e), 422)
 
     if not chunks:
-        return Response(
-            content="transcript is empty after chunking",
-            status_code=422,
-            media_type="text/plain",
+        _record_error(db, record_id, request)
+        return _error_response(
+            record_id,
+            "transcript is empty after chunking",
+            422,
         )
 
     try:
@@ -131,7 +191,9 @@ async def synthesize(
                 len(chunks),
                 len(chunk),
             )
-            pcm_blocks.append(tts_client.generate_content(chunk_prompt, request.voice))
+            pcm_blocks.append(
+                tts_client.generate_content(chunk_prompt, request.voice)
+            )
 
         if len(pcm_blocks) == 1:
             pcm = pcm_blocks[0]
@@ -139,15 +201,56 @@ async def synthesize(
             pcm = concat_pcm_blocks(pcm_blocks)
     except TtsClientError as e:
         logger.error("TTS client error: %s", e)
-        return Response(content=str(e), status_code=e.status_code, media_type="text/plain")
+        _record_error(db, record_id, request)
+        return _error_response(record_id, str(e), e.status_code)
     except PcmAudioError as e:
         logger.error("Audio processing error: %s", e)
-        return Response(content=str(e), status_code=502, media_type="text/plain")
+        _record_error(db, record_id, request)
+        return _error_response(record_id, str(e), 502)
 
     try:
         wav_bytes = pcm_to_wav_bytes(pcm)
     except PcmAudioError as e:
         logger.error("PCM conversion error: %s", e)
-        return Response(content=str(e), status_code=502, media_type="text/plain")
+        _record_error(db, record_id, request)
+        return _error_response(record_id, str(e), 502)
 
-    return Response(content=wav_bytes, media_type="audio/wav")
+    try:
+        audio_path = save_audio(record_id, wav_bytes)
+    except Exception as e:
+        logger.error("Failed to save audio file: %s", e)
+        _record_error(db, record_id, request)
+        return _error_response(record_id, "failed to save audio file", 500)
+
+    try:
+        record = db.create(
+            record_id=record_id,
+            text_excerpt=_text_excerpt(request.text),
+            char_count=len(request.text),
+            voice=request.voice,
+            format="wav",
+            audio_path=str(audio_path),
+            status="completed",
+            pacing=request.pacing or None,
+            style=request.style or None,
+            accent=request.accent or None,
+        )
+    except Exception as e:
+        logger.exception("Failed to record synthesis metadata id=%s", record_id)
+        if not delete_audio(record_id):
+            logger.warning("Failed to clean orphan audio file id=%s", record_id)
+        return _error_response(record_id, "failed to record synthesis metadata", 500)
+
+    logger.info(
+        "Synthesis completed id=%s chunks=%d size=%d",
+        record_id,
+        len(chunks),
+        len(wav_bytes),
+    )
+
+    return {
+        "id": record["id"],
+        "created_at": record["created_at"],
+        "metadata": _build_metadata(request),
+        "audio_url": f"/api/audio/{record['id']}",
+    }

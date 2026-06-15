@@ -59,8 +59,10 @@ class Database:
         style: str | None = None,
         accent: str | None = None,
         duration_ms: int | None = None,
+        record_id: str | None = None,
     ) -> dict:
-        record_id = str(uuid.uuid4())
+        if record_id is None:
+            record_id = str(uuid.uuid4())
         created_at = datetime.now(timezone.utc).isoformat()
 
         self.conn.execute(

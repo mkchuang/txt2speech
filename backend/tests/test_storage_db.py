@@ -1,4 +1,5 @@
 import os
+import uuid
 from pathlib import Path
 
 import pytest
@@ -111,6 +112,23 @@ class TestCreate:
         created_at = record["created_at"]
         assert "T" in created_at
         assert created_at.endswith("+00:00") or "Z" in created_at
+
+    def test_custom_record_id_is_preserved(self) -> None:
+        db = _make_db()
+        custom_id = "my-custom-id-123"
+        record = _create_one(db, record_id=custom_id)
+        assert record["id"] == custom_id
+
+    def test_custom_record_id_respects_default_uuid_when_omitted(self) -> None:
+        db = _make_db()
+        record = _create_one(db)
+        uuid.UUID(record["id"])
+
+    def test_duplicate_record_id_raises(self) -> None:
+        db = _make_db()
+        _create_one(db, record_id="dup-id")
+        with pytest.raises(Exception):
+            _create_one(db, record_id="dup-id")
 
 
 class TestListItems:
