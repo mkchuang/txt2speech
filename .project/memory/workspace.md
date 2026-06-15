@@ -55,7 +55,8 @@
 - [x] 任務 4：/adf.develop 完成 TASK-001 後端骨架 + config（code review / Codex app 仲裁驗證：REVIEW PASS）
 - [x] 任務 5：完成 TASK-002 `GET /api/voices` 靜態清單（30 種 Gemini TTS voice，review/app gate pass）
 - [x] 任務 6：完成 TASK-003 `tts/prompt.py` prompt 組裝器（fixed 3 sections + note/voice sanitizer，review/app gate pass）
-- [ ] 任務 7：下一步依關鍵路徑開 TASK-004 `tts/client.py` Gemini adapter
+- [x] 任務 7：完成 TASK-004 `tts/client.py` Gemini adapter（mock tests pass，lazy google import，review/app gate pass）
+- [ ] 任務 8：下一步依關鍵路徑開 TASK-005 `audio/pcm.py` PCM→WAV
 
 ### 當前技術挑戰
 1. **TTS 切塊 + PCM 串接品質**（最高風險）
@@ -70,7 +71,7 @@
 
 3. **preview 模型可能變動**
    - 狀態：已緩解設計
-   - 方向：tts/ adapter 為唯一 AI 邊界，隔離 API 變動
+   - 方向：TASK-004 已以 `GeminiTtsClient` 作為唯一 google-genai 邊界；module import lazy load SDK，mock 測試覆蓋空/非音訊/timeout retry 與 `count_tokens`
 
 ### 短期目標（本月）
 - 目標 1：完成 M1（TASK-001 + TASK-002 已 pass）
@@ -87,13 +88,13 @@
 
 ## 📊 模組開發狀態
 
-*最後更新：2026-06-15（TASK-003 review pass / update-memory）*
+*最後更新：2026-06-15（TASK-004 review pass / update-memory）*
 
 | 模組 | 功能 | 開發狀態 | 驗證狀態 | 說明 |
 |------|------|----------|----------|------|
 | config | 設定/金鑰 | 🟢 已完成 | 🟢 已驗證 | TASK-001：pydantic-settings 載入 `GEMINI_API_KEY`/`DATA_DIR`/`CORS_ORIGINS` |
 | api | FastAPI app + health/voices；synthesize/history/audio 待續 | 🟡 部分完成 | 🟢 health/voices 已驗證 | TASK-001：`/api/health`；TASK-002：`/api/voices` 回 30 種 Gemini TTS voice |
-| tts | prompt 組裝器已完成；Gemini adapter + 切塊待續 | 🟡 部分完成 | 🟢 prompt 已驗證 | TASK-003：fixed preamble + Director's Notes + TRANSCRIPT；voice/style/pacing/accent sanitizer 防 section marker injection |
+| tts | prompt 組裝器 + Gemini adapter 已完成；切塊待續 | 🟡 部分完成 | 🟢 prompt/client mock 已驗證 | TASK-003 prompt；TASK-004 client：lazy google import、audio inline_data 健全性檢查、retry/backoff、502/504 mapping、count_tokens |
 | audio | PCM→WAV 串接 | ⚫ 未開始 | ⚫ 未驗證 | M2/M3 |
 | storage | SQLite + 檔案系統 | ⚫ 未開始 | ⚫ 未驗證 | M4 |
 | ingest | markdown 正規化 | ⚫ 未開始 | ⚫ 未驗證 | M5 |
@@ -119,6 +120,10 @@
    - 狀態：REVIEW PASS；前一輪 Major（note 欄位可注入 section marker）已修正，最終 Critical/Major/Minor/Suggestion 皆無。
    - 驗證：`python3 -m pytest backend/tests/ -v` 通過（32 passed）；`python3 -m compileall -q backend/app/tts/prompt.py backend/tests/test_prompt.py` 通過；新增 voice/style/pacing/accent 換行與 `###` marker injection 測試。
    - 殘留風險：尚未接 Gemini SDK / 真實 TTS 合成；TASK-004 需將 voice 寫入 SDK config，並以 mock 驗證回應健全性與 retry/error mapping。
+4. **TASK-004 review**
+   - 狀態：REVIEW PASS；Critical/Major 無 blocker，Minor line-length 已於提交前修正。
+   - 驗證：`python3 -m pytest backend/tests/ -v` 通過（49 passed）；`python3 -m compileall -q backend/app/tts/client.py backend/tests/test_client.py` 通過；backend `.venv` 可建立 `GenerateContentConfig` speech_config/voice config。
+   - 殘留風險：尚未打真 Gemini API；真實 TTS 與 `/api/synthesize` integration 屬 TASK-006，TASK-004 僅 mock adapter 驗收。
 
 ---
 
@@ -136,6 +141,7 @@
 - ✅ TASK-001：後端 FastAPI 骨架、pydantic-settings config、`/api/health`、`.env.example`、package init 完成；`.gitignore` 已改為只忽略 `/data/audio/`，避免 `backend/app/audio` 被忽略。
 - ✅ TASK-002：`GET /api/voices` 回 30 種 Gemini TTS 預建 voice（`name` + `description`），可作前端下拉資料源。
 - ✅ TASK-003：`tts/prompt.py` 組固定 preamble + `### DIRECTOR'S NOTES` + `### TRANSCRIPT`；保留 transcript inline tags，對 voice/style/pacing/accent 做單行 sanitizer。
+- ✅ TASK-004：`tts/client.py` 封裝 Gemini TTS 單塊 adapter、audio response 健全性檢查、retry/backoff、502/504 mapping 與 `count_tokens`。
 
 #### 上週
 - ✅ [完成項目 1]：待補充
@@ -161,7 +167,7 @@
 
 ### 待確認事項
 - [x] plan 已 approved；4 項建議決策（WAV / proxy / Director's Notes / 雙條件切塊）皆採用
-- [ ] TASK-003 已通過 review/app gate/update-memory，進入 commit/push gate；下一步銜接 TASK-004 `tts/client.py`
+- [ ] TASK-004 已通過 review/app gate/update-memory，進入 commit/push gate；下一步銜接 TASK-005 `audio/pcm.py`
 
 ### 討論備註
 [最近討論的重要內容...]
@@ -177,10 +183,11 @@
 | 2026-06-15 | TASK-001 後端骨架 + config | 通過 | REVIEW PASS；Critical/Major 無 blocker；acceptance criteria 已有 evidence |
 | 2026-06-15 | TASK-002 `GET /api/voices` | 通過 | REVIEW PASS；Critical/Major/Minor/Suggestion 無；30 筆 Gemini TTS voice 與官方清單相符 |
 | 2026-06-15 | TASK-003 `tts/prompt.py` prompt 組裝器 | 通過 | REVIEW PASS；已修正 note/voice section marker injection；32 backend tests 通過 |
+| 2026-06-15 | TASK-004 `tts/client.py` Gemini adapter | 通過 | REVIEW PASS；mock 覆蓋 normal/invalid/timeout/count_tokens；49 backend tests 通過 |
 
 ### 審查統計
-- 總審查次數：3
-- 通過審查：3
+- 總審查次數：4
+- 通過審查：4
 - 需修復：0
 
 ---
