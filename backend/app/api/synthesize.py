@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
 from app.audio.pcm import PcmAudioError, concat_pcm_blocks, pcm_to_wav_bytes
 from app.config import settings
+from app.ingest.markdown import normalize_markdown
 from app.storage.db import Database, get_database
 from app.storage.files import delete_audio, resolve_audio_path, save_audio
 from app.tts.chunker import ChunkingError, chunk_transcript
@@ -38,6 +39,7 @@ class SynthesizeRequest(BaseModel):
     style: str = Field(default="", description="Delivery style")
     pacing: str = Field(default="", description="Delivery pacing")
     accent: str = Field(default="", description="Pronunciation accent")
+    source: str = Field(default="text", description="Input source: 'text' or 'md'")
 
     @field_validator("text", "voice")
     @classmethod
@@ -47,6 +49,16 @@ class SynthesizeRequest(BaseModel):
             raise ValueError("must not be blank")
         if info.field_name == "voice":
             return stripped
+        return value
+
+    @field_validator("source")
+    @classmethod
+    def validate_source(cls, value: str) -> str:
+        allowed = {"text", "md"}
+        if value not in allowed:
+            raise ValueError(
+                f"source must be one of {sorted(allowed)}, got: {value!r}"
+            )
         return value
 
 
@@ -85,16 +97,20 @@ def _resolve_prompt_overhead_tokens(
 
 
 def _chunk_request(
-    request: SynthesizeRequest,
+    transcript: str,
     prompt_overhead_tokens: int | None,
+    style: str,
+    pacing: str,
+    accent: str,
+    voice: str,
 ) -> list[str]:
     return chunk_transcript(
-        request.text,
+        transcript,
         prompt_overhead_tokens=prompt_overhead_tokens,
-        style=request.style,
-        pacing=request.pacing,
-        accent=request.accent,
-        voice=request.voice,
+        style=style,
+        pacing=pacing,
+        accent=accent,
+        voice=voice,
     )
 
 
@@ -104,34 +120,48 @@ def _text_excerpt(text: str) -> str:
     return text[:TEXT_EXCERPT_MAX_LEN]
 
 
-def _build_metadata(request: SynthesizeRequest) -> dict:
+def _build_metadata(
+    transcript: str,
+    voice: str,
+    pacing: str,
+    style: str,
+    accent: str,
+    source: str,
+) -> dict:
     return {
-        "text_excerpt": _text_excerpt(request.text),
-        "char_count": len(request.text),
-        "voice": request.voice,
-        "pacing": request.pacing,
-        "style": request.style,
-        "accent": request.accent,
+        "text_excerpt": _text_excerpt(transcript),
+        "char_count": len(transcript),
+        "source": source,
+        "voice": voice,
+        "pacing": pacing,
+        "style": style,
+        "accent": accent,
     }
 
 
 def _record_error(
     db: Database,
     record_id: str,
-    request: SynthesizeRequest,
+    transcript: str,
+    voice: str,
+    source: str,
+    style: str | None = None,
+    pacing: str | None = None,
+    accent: str | None = None,
 ) -> None:
     try:
         db.create(
             record_id=record_id,
-            text_excerpt=_text_excerpt(request.text),
-            char_count=len(request.text),
-            voice=request.voice,
+            text_excerpt=_text_excerpt(transcript),
+            char_count=len(transcript),
+            source=source,
+            voice=voice,
             format="wav",
             audio_path=str(resolve_audio_path(record_id)),
             status="error",
-            pacing=request.pacing or None,
-            style=request.style or None,
-            accent=request.accent or None,
+            pacing=pacing,
+            style=style,
+            accent=accent,
         )
     except Exception:
         logger.exception("Failed to record error synthesis status id=%s", record_id)
@@ -152,6 +182,10 @@ async def synthesize(
 ) -> dict | JSONResponse:
     record_id = str(uuid.uuid4())
 
+    transcript = request.text
+    if request.source == "md":
+        transcript = normalize_markdown(transcript)
+
     prompt_overhead_tokens = _resolve_prompt_overhead_tokens(
         tts_client,
         request,
@@ -159,16 +193,38 @@ async def synthesize(
 
     try:
         chunks = _chunk_request(
-            request,
+            transcript,
             prompt_overhead_tokens,
+            request.style,
+            request.pacing,
+            request.accent,
+            request.voice,
         )
     except ChunkingError as e:
         logger.error("Chunking error: %s", e)
-        _record_error(db, record_id, request)
+        _record_error(
+            db,
+            record_id,
+            transcript,
+            request.voice,
+            request.source,
+            style=request.style or None,
+            pacing=request.pacing or None,
+            accent=request.accent or None,
+        )
         return _error_response(record_id, str(e), 422)
 
     if not chunks:
-        _record_error(db, record_id, request)
+        _record_error(
+            db,
+            record_id,
+            transcript,
+            request.voice,
+            request.source,
+            style=request.style or None,
+            pacing=request.pacing or None,
+            accent=request.accent or None,
+        )
         return _error_response(
             record_id,
             "transcript is empty after chunking",
@@ -201,32 +257,69 @@ async def synthesize(
             pcm = concat_pcm_blocks(pcm_blocks)
     except TtsClientError as e:
         logger.error("TTS client error: %s", e)
-        _record_error(db, record_id, request)
+        _record_error(
+            db,
+            record_id,
+            transcript,
+            request.voice,
+            request.source,
+            style=request.style or None,
+            pacing=request.pacing or None,
+            accent=request.accent or None,
+        )
         return _error_response(record_id, str(e), e.status_code)
     except PcmAudioError as e:
         logger.error("Audio processing error: %s", e)
-        _record_error(db, record_id, request)
+        _record_error(
+            db,
+            record_id,
+            transcript,
+            request.voice,
+            request.source,
+            style=request.style or None,
+            pacing=request.pacing or None,
+            accent=request.accent or None,
+        )
         return _error_response(record_id, str(e), 502)
 
     try:
         wav_bytes = pcm_to_wav_bytes(pcm)
     except PcmAudioError as e:
         logger.error("PCM conversion error: %s", e)
-        _record_error(db, record_id, request)
+        _record_error(
+            db,
+            record_id,
+            transcript,
+            request.voice,
+            request.source,
+            style=request.style or None,
+            pacing=request.pacing or None,
+            accent=request.accent or None,
+        )
         return _error_response(record_id, str(e), 502)
 
     try:
         audio_path = save_audio(record_id, wav_bytes)
     except Exception as e:
         logger.error("Failed to save audio file: %s", e)
-        _record_error(db, record_id, request)
+        _record_error(
+            db,
+            record_id,
+            transcript,
+            request.voice,
+            request.source,
+            style=request.style or None,
+            pacing=request.pacing or None,
+            accent=request.accent or None,
+        )
         return _error_response(record_id, "failed to save audio file", 500)
 
     try:
         record = db.create(
             record_id=record_id,
-            text_excerpt=_text_excerpt(request.text),
-            char_count=len(request.text),
+            text_excerpt=_text_excerpt(transcript),
+            char_count=len(transcript),
+            source=request.source,
             voice=request.voice,
             format="wav",
             audio_path=str(audio_path),
@@ -251,6 +344,13 @@ async def synthesize(
     return {
         "id": record["id"],
         "created_at": record["created_at"],
-        "metadata": _build_metadata(request),
+        "metadata": _build_metadata(
+            transcript,
+            request.voice,
+            request.pacing,
+            request.style,
+            request.accent,
+            request.source,
+        ),
         "audio_url": f"/api/audio/{record['id']}",
     }

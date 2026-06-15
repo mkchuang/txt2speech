@@ -6,13 +6,13 @@
 
 ## 模組總覽
 
-> 狀態：plan-2026-06-15 已 approved；TASK-001 已落地後端 skeleton/config/health，TASK-002 已落地 `/api/voices`，TASK-003/004 已落地 prompt 組裝器與 Gemini adapter，TASK-005 已落地 PCM→WAV helper，TASK-006 已落地 M2 短稿 `POST /api/synthesize`，TASK-007 已落地雙條件切塊器，TASK-008 已落地 PCM 多塊串接與長稿 synthesize，TASK-009 已落地 SQLite metadata CRUD，TASK-010 已落地音檔安全路徑/寫刪檔，TASK-011 已將 synthesize 接入 DB/file storage 並切回 metadata/audio_url contract，TASK-012 已落地 history 分頁與 delete，TASK-013 已落地 audio Range/下載；其他模組仍依 task backlog 推進。
+> 狀態：plan-2026-06-15 已 approved；TASK-001 已落地後端 skeleton/config/health，TASK-002 已落地 `/api/voices`，TASK-003/004 已落地 prompt 組裝器與 Gemini adapter，TASK-005 已落地 PCM→WAV helper，TASK-006 已落地 M2 短稿 `POST /api/synthesize`，TASK-007 已落地雙條件切塊器，TASK-008 已落地 PCM 多塊串接與長稿 synthesize，TASK-009 已落地 SQLite metadata CRUD，TASK-010 已落地音檔安全路徑/寫刪檔，TASK-011 已將 synthesize 接入 DB/file storage 並切回 metadata/audio_url contract，TASK-012 已落地 history 分頁與 delete，TASK-013 已落地 audio Range/下載，TASK-014 已落地 markdown→plain text normalizer 與 synthesize `source='md'` metadata；下一步 TASK-015 frontend scaffolding + rewrites proxy。
 
 | 模組 | 目錄 | 行為摘要 | 分析深度 | 最後更新 |
 |------|------|---------|---------|---------|
 | config | backend/app/config.py | 載入 GEMINI_API_KEY / DATA_DIR / CORS 設定；缺 key 啟動 gate 已驗證 | ✅ 已驗證 | 2026-06-15 |
-| api | backend/app/api/ | FastAPI app + `/api/health`、`/api/voices`、`POST /api/synthesize`、`GET /api/history`、`DELETE /api/history/{id}`、`GET /api/audio/{id}` 已實作且驗證；audio 支援 Range 206 與 `?download=1` attachment | 🟢 M4 已驗證 | 2026-06-15 |
-| ingest | backend/app/ingest/ | markdown→純文字正規化 | 📋 規劃 | 2026-06-15 |
+| api | backend/app/api/ | FastAPI app + `/api/health`、`/api/voices`、`POST /api/synthesize`、`GET /api/history`、`DELETE /api/history/{id}`、`GET /api/audio/{id}` 已實作且驗證；synthesize 支援 `source='md'` 先正規化再合成並寫入 metadata | 🟢 M5 已驗證 | 2026-06-15 |
+| ingest | backend/app/ingest/ | markdown→plain text normalizer：heading/list/code/link/paragraph 等純文字化並保留段落可讀性 | 🟢 M5 已驗證 | 2026-06-15 |
 | tts | backend/app/tts/ | prompt 組裝器 + Gemini adapter + chunker 已由 `POST /api/synthesize` 整合；長稿 path 使用 prompt overhead token count + 本地 chunk 估算，避免 per-candidate 遠端 `count_tokens` | 🟢 M3 已驗證 | 2026-06-15 |
 | audio | backend/app/audio/ | TASK-005 已提供 24kHz mono 16-bit raw PCM 預設、frame alignment 與 stdlib `wave` WAV 封裝；TASK-008 新增多塊 concat，長稿路由串接後一次封裝 WAV | 🟢 M3 已驗證 | 2026-06-15 |
 | storage | backend/app/storage/ | `db.py` 已提供 `syntheses` SQLite schema（含 source 預設 text）與 create/list/get/delete；`files.py` 已提供 `DATA_DIR/audio/{id}.wav` 安全解析、save/delete；synthesize/history/audio 已接 DB + file storage | 🟢 M4 已驗證 | 2026-06-15 |

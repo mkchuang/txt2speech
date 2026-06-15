@@ -729,3 +729,256 @@ class TestSynthesizeTextExcerptTruncation:
         assert data["metadata"]["text_excerpt"] == "Hi."
         record = self.db.get(data["id"])
         assert record["text_excerpt"] == "Hi."
+
+
+class TestSynthesizeSourceValidation:
+    def test_invalid_source_returns_422(self) -> None:
+        response = client.post(
+            "/api/synthesize",
+            json={"text": "Hello.", "voice": "Puck", "source": "invalid"},
+        )
+        assert response.status_code == 422
+
+
+class TestSynthesizeWithSource:
+    def setup_method(self) -> None:
+        self.db = _make_db()
+        app.dependency_overrides[get_db] = lambda: self.db
+
+    def teardown_method(self) -> None:
+        app.dependency_overrides.clear()
+
+    def test_source_default_is_text(self) -> None:
+        mock_client = MockTtsClient()
+        app.dependency_overrides[get_tts_client] = lambda: mock_client
+
+        response = client.post(
+            "/api/synthesize",
+            json={"text": "Hello world.", "voice": "Puck"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["metadata"]["source"] == "text"
+        record = self.db.get(data["id"])
+        assert record is not None
+        assert record["source"] == "text"
+
+    def test_source_text_explicit(self) -> None:
+        mock_client = MockTtsClient()
+        app.dependency_overrides[get_tts_client] = lambda: mock_client
+
+        response = client.post(
+            "/api/synthesize",
+            json={"text": "Hello world.", "voice": "Puck", "source": "text"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["metadata"]["source"] == "text"
+        record = self.db.get(data["id"])
+        assert record is not None
+        assert record["source"] == "text"
+
+    def test_source_md_metadata_contains_source(self) -> None:
+        mock_client = MockTtsClient()
+        app.dependency_overrides[get_tts_client] = lambda: mock_client
+
+        response = client.post(
+            "/api/synthesize",
+            json={"text": "Hello world.", "voice": "Puck", "source": "md"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["metadata"]["source"] == "md"
+
+    def test_source_md_persisted_in_db(self) -> None:
+        mock_client = MockTtsClient()
+        app.dependency_overrides[get_tts_client] = lambda: mock_client
+
+        response = client.post(
+            "/api/synthesize",
+            json={"text": "Hello world.", "voice": "Puck", "source": "md"},
+        )
+
+        assert response.status_code == 200
+        record = self.db.get(response.json()["id"])
+        assert record is not None
+        assert record["source"] == "md"
+        assert record["status"] == "completed"
+
+    def test_source_md_normalizes_markdown_before_synthesis(self) -> None:
+        mock_client = MockTtsClient()
+        app.dependency_overrides[get_tts_client] = lambda: mock_client
+
+        response = client.post(
+            "/api/synthesize",
+            json={
+                "text": "# Heading\n\n**bold** and *italic* text.",
+                "voice": "Puck",
+                "source": "md",
+            },
+        )
+
+        assert response.status_code == 200
+        call = mock_client.generate_content_calls[0]
+        transcript_part = call["prompt"].split("### TRANSCRIPT\n")[-1]
+        assert "# Heading" not in transcript_part
+        assert "**" not in transcript_part
+        assert "*" not in transcript_part.split("bold")[1].split("text")[0].strip()
+        assert "Heading" in transcript_part
+        assert "bold" in transcript_part
+        assert "italic" in transcript_part
+        assert "text" in transcript_part
+
+    def test_source_md_text_excerpt_from_normalized_text(self) -> None:
+        mock_client = MockTtsClient()
+        app.dependency_overrides[get_tts_client] = lambda: mock_client
+
+        response = client.post(
+            "/api/synthesize",
+            json={
+                "text": "# Hello world\n\n**bold** text",
+                "voice": "Puck",
+                "source": "md",
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        excerpt = data["metadata"]["text_excerpt"]
+        assert "#" not in excerpt
+        assert "**" not in excerpt
+        assert "Hello world" in excerpt
+
+    def test_source_md_char_count_from_normalized_text(self) -> None:
+        mock_client = MockTtsClient()
+        app.dependency_overrides[get_tts_client] = lambda: mock_client
+
+        response = client.post(
+            "/api/synthesize",
+            json={
+                "text": "# Hello\n\n**world**",
+                "voice": "Puck",
+                "source": "md",
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        normalized_len = len("Hello\n\nworld")
+        assert data["metadata"]["char_count"] == normalized_len
+        record = self.db.get(data["id"])
+        assert record is not None
+        assert record["char_count"] == normalized_len
+
+    def test_source_md_error_record_has_source(self) -> None:
+        mock_client = MockTtsClient(
+            error=TtsClientError("bad gateway", status_code=502)
+        )
+        app.dependency_overrides[get_tts_client] = lambda: mock_client
+
+        response = client.post(
+            "/api/synthesize",
+            json={"text": "Hello world.", "voice": "Puck", "source": "md"},
+        )
+
+        assert response.status_code == 502
+        records = self.db.list_items(limit=1)
+        assert records["total"] >= 1
+        assert records["items"][0]["source"] == "md"
+        assert records["items"][0]["status"] == "error"
+
+    def test_source_md_with_long_text_and_chunking(self) -> None:
+        mock_client = ChunkingMockTtsClient()
+        app.dependency_overrides[get_tts_client] = lambda: mock_client
+
+        long_md = "# Title\n\n" + ("**Practice** sentence. " * 400)
+
+        response = client.post(
+            "/api/synthesize",
+            json={
+                "text": long_md,
+                "voice": "Puck",
+                "source": "md",
+                "style": "dramatic",
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["metadata"]["source"] == "md"
+        record = self.db.get(data["id"])
+        assert record is not None
+        assert record["source"] == "md"
+        assert record["status"] == "completed"
+        all_transcript_parts = [
+            call["prompt"].split("### TRANSCRIPT\n")[-1]
+            for call in mock_client.generate_content_calls
+        ]
+        for transcript_part in all_transcript_parts:
+            assert "**" not in transcript_part
+            assert "# " not in transcript_part
+        combined = "".join(all_transcript_parts)
+        assert "Title" in combined
+        assert "Practice" in combined
+
+    def test_source_md_preserves_code_without_markdown_fences(self) -> None:
+        mock_client = MockTtsClient()
+        app.dependency_overrides[get_tts_client] = lambda: mock_client
+
+        response = client.post(
+            "/api/synthesize",
+            json={
+                "text": "```python\nprint('hi')\n```",
+                "voice": "Puck",
+                "source": "md",
+            },
+        )
+
+        assert response.status_code == 200
+        transcript_part = (
+            mock_client.generate_content_calls[0]["prompt"]
+            .split("### TRANSCRIPT\n")[-1]
+        )
+        assert "```" not in transcript_part
+        assert "print('hi')" in transcript_part
+        record = self.db.get(response.json()["id"])
+        assert record is not None
+        assert record["source"] == "md"
+
+    def test_source_md_empty_after_normalization_still_errors(self) -> None:
+        mock_client = MockTtsClient()
+        app.dependency_overrides[get_tts_client] = lambda: mock_client
+
+        response = client.post(
+            "/api/synthesize",
+            json={"text": "![diagram](diagram.png)", "voice": "Puck", "source": "md"},
+        )
+
+        assert response.status_code == 422
+        data = response.json()
+        assert "id" in data
+        record = self.db.get(data["id"])
+        assert record is not None
+        assert record["source"] == "md"
+        assert record["status"] == "error"
+
+    def test_source_md_preserves_paragraphs_in_prompt(self) -> None:
+        mock_client = MockTtsClient()
+        app.dependency_overrides[get_tts_client] = lambda: mock_client
+
+        response = client.post(
+            "/api/synthesize",
+            json={
+                "text": "First paragraph.\n\nSecond paragraph.",
+                "voice": "Puck",
+                "source": "md",
+            },
+        )
+
+        assert response.status_code == 200
+        call = mock_client.generate_content_calls[0]
+        assert "First paragraph" in call["prompt"]
+        assert "Second paragraph" in call["prompt"]

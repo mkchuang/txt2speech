@@ -55,7 +55,8 @@
 | 模組 | 功能 | 技術 | 狀態 |
 |------|------|------|------|
 | frontend | 講稿輸入（貼上 / 上傳 .md）、參數選項（voice/語速/風格）、播放器、歷史清單、下載 | Next.js + TS | ⚫ 未開始 |
-| api | FastAPI app、CORS、`/api/health`、`/api/voices`、`POST /api/synthesize` 長稿切塊合成 + metadata/audio_url contract、history 分頁/DELETE、audio Range/下載已落地；md→純文字正規化待續 | FastAPI | 🟡 部分完成（TASK-001/002/006/008/011/012/013） |
+| api | FastAPI app、CORS、`/api/health`、`/api/voices`、`POST /api/synthesize` 長稿切塊合成 + metadata/audio_url contract、history 分頁/DELETE、audio Range/下載已落地；`source='md'` 會先 markdown→plain text 後合成並寫 metadata | FastAPI | 🟢 後端 M5 已完成（TASK-001/002/006/008/011/012/013/014） |
+| ingest | markdown→plain text normalizer：heading/list/code/link/paragraph 等純文字化，供 `POST /api/synthesize source='md'` 使用 | Python markdown + BeautifulSoup | 🟢 M5 已完成（TASK-014） |
 | tts | prompt 組裝、Gemini adapter 與雙條件切塊器已落地（完整 prompt token accounting；段落/句子/char fallback；lazy google-genai import；audio inline_data 健全性檢查+retry；502/504 mapping；Gemini `count_tokens` 僅用於 prompt overhead，chunk 內容用本地估算避免逐 candidate 遠端呼叫） | google-genai | 🟢 M3 已完成（TASK-003/004/007/008） |
 | audio | raw PCM 24kHz mono 16-bit → WAV 封裝、frame alignment 與多塊 raw PCM concat 已落地，長稿路由會串接後一次封裝 WAV | stdlib `wave` | 🟢 M3 已完成（TASK-005/008） |
 | storage | SQLite metadata schema + create/list/get/delete 已落地（含 `source` 預設 `text`、limit/offset 分頁）；`DATA_DIR/audio/{id}.wav` 安全路徑解析/寫檔/刪檔已落地；synthesize 成功寫 `completed` row + WAV，失敗盡量寫 `error` row；history list/delete 與 audio serve 已接 DB + file | SQLite + fs | 🟢 M4 已完成（TASK-009/010/011/012/013） |
@@ -71,7 +72,7 @@
 - 後端 → Gemini：`google-genai` SDK（HTTPS）。
 
 ### API 端點（草案）
-- `POST /api/synthesize`：回 `{id, created_at, metadata, audio_url}`；短稿/長稿皆經 Gemini TTS → PCM/WAV → file storage + SQLite metadata，成功寫 `completed`，失敗盡量寫 `error`。
+- `POST /api/synthesize`：回 `{id, created_at, metadata, audio_url}`；`source='md'` 先正規化為純文字，短稿/長稿皆經 Gemini TTS → PCM/WAV → file storage + SQLite metadata，成功寫 `completed`，失敗盡量寫 `error`。
 - `GET /api/history?limit=50&offset=0`：歷史清單分頁，回 `items/total/limit/offset/has_more`，item 附 `audio_url`。
 - `GET /api/audio/{id}`：serve 音檔，支援線上播放（Range 206）與下載（`?download=1` 設 attachment）。
 - `GET /api/voices`：回 30 種預建 voice 清單（前端下拉選單）。
@@ -101,6 +102,7 @@
 - **語速控制方式**（已降為低風險）：經官方文件確認可用 Director's Notes `Pacing:` + inline `[very slow/fast]` 控制，寫在 prompt 內；細部以實測微調。
 - **SynthID 浮水印**：Gemini TTS 所有輸出皆內嵌隱形 AI 浮水印（產品事實，無需處理，使用者知悉即可）。
 - **Preview 模型變動**：`gemini-3.1-flash-tts-preview` 為 preview，API 可能變動，以 adapter 隔離。
+- **Markdown 正規化語意保留**：TASK-014 已覆蓋 heading/list/code/link/paragraph 等純文字化；殘留風險為特殊 Markdown/HTML 表格或巢狀結構的朗讀語意需在前端上傳與真實講稿回歸時觀察。
 - **前後端協調**：CORS / proxy 需設定妥當（前端連後端 :8000）。
 - **成本與速率限制**：不做快取，每次重新產生會持續消耗音訊 tokens（已知取捨）。
 

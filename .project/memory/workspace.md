@@ -65,7 +65,8 @@
 - [x] 任務 14：完成 TASK-011 synthesize 接 storage（取代 M2 暫時 contract；review/app gate pass）
 - [x] 任務 15：完成 TASK-012 `GET /api/history` 分頁 + `DELETE /api/history/{id}`（review/app gate pass）
 - [x] 任務 16：完成 TASK-013 `GET /api/audio/{id}`（Range + 下載；review/app gate pass）
-- [ ] 任務 17：下一步依 active plan 開 TASK-014 `ingest/markdown.py` + synthesize 接 `source`
+- [x] 任務 17：完成 TASK-014 markdown→plain text normalizer + synthesize 接 `source`（review/app gate pass）
+- [ ] 任務 18：下一步依 active plan 開 TASK-015 Next.js scaffolding + rewrites proxy
 
 ### 當前技術挑戰
 1. **TTS 切塊 + PCM 串接品質**（最高風險）
@@ -85,7 +86,7 @@
 
 ### 短期目標（本月）
 - 目標 1：完成 M1（TASK-001 + TASK-002 已 pass）
-- 目標 2：完成 M1–M4（後端骨架 + 合成 + 切塊串接 + 持久化/歷史）
+- 目標 2：完成 M1–M5（後端骨架 + 合成 + 切塊串接 + 持久化/歷史 + markdown 正規化）
 
 ### 待解決問題
 - [x] plan-2026-06-15-gemini-tts-speech-practice 已 **approved**（2026-06-15），已 breakdown 為 18 TASK
@@ -98,16 +99,16 @@
 
 ## 📊 模組開發狀態
 
-*最後更新：2026-06-15（TASK-013 review pass / update-memory）*
+*最後更新：2026-06-15（TASK-014 review pass / update-memory）*
 
 | 模組 | 功能 | 開發狀態 | 驗證狀態 | 說明 |
 |------|------|----------|----------|------|
 | config | 設定/金鑰 | 🟢 已完成 | 🟢 已驗證 | TASK-001：pydantic-settings 載入 `GEMINI_API_KEY`/`DATA_DIR`/`CORS_ORIGINS` |
-| api | FastAPI app + health/voices/synthesize/history/audio | 🟢 M4 已完成 | 🟢 health/voices/synthesize/history/audio 已驗證 | TASK-001：`/api/health`；TASK-002：`/api/voices`；TASK-011：`POST /api/synthesize` 回 metadata/audio_url；TASK-012：history/delete；TASK-013：audio Range + download |
+| api | FastAPI app + health/voices/synthesize/history/audio/md source | 🟢 M5 已完成 | 🟢 health/voices/synthesize/history/audio/md source 已驗證 | TASK-001：`/api/health`；TASK-002：`/api/voices`；TASK-011：`POST /api/synthesize` 回 metadata/audio_url；TASK-012：history/delete；TASK-013：audio Range + download；TASK-014：`source='md'` normalize 後合成並寫 metadata |
 | tts | prompt 組裝器 + Gemini adapter + 雙條件切塊器 + 長稿 synthesize 整合完成 | 🟢 M3 已完成 | 🟢 prompt/client/chunker/synthesize mock 已驗證 | TASK-003/004/007/008；`count_tokens` 僅算 prompt overhead，chunk 內容本地估算 |
 | audio | PCM→WAV + 多塊 concat | 🟢 M3 已完成 | 🟢 PCM/WAV/concat 已驗證 | TASK-005/008：24kHz mono 16-bit 預設、frame alignment、stdlib `wave` WAV 封裝、raw PCM 多塊串接 |
 | storage | SQLite metadata + 檔案系統 | 🟢 M4 已完成 | 🟢 DB/file/synthesize/history/audio integration 已驗證 | TASK-009：`storage/db.py` schema + create/list/get/delete；TASK-010：`storage/files.py` save/resolve/delete + path traversal 防護；TASK-011：synthesize 寫 completed/error row；TASK-012：history list/delete 串 DB + file；TASK-013：audio endpoint 讀 `DATA_DIR/audio/{id}.wav` |
-| ingest | markdown 正規化 | ⚫ 未開始 | ⚫ 未驗證 | M5 |
+| ingest | markdown→plain text normalizer | 🟢 M5 已完成 | 🟢 heading/list/code/link/paragraph 與 synthesize md source 已驗證 | TASK-014 |
 | frontend | Next.js UI + 歷史 | ⚫ 未開始 | ⚫ 未驗證 | M6/M7 |
 
 ### 狀態圖例
@@ -179,7 +180,12 @@
     - 狀態：REVIEW PASS；Critical/Major/Minor/Suggestion 無 findings，未發現 out-of-scope diff。
     - durable contract：`GET /api/audio/{id}` 先確認 DB row 與 `DATA_DIR/audio/{id}.wav` 存在；使用 Starlette `FileResponse` 支援 full response、Range 206、`Accept-Ranges`/`Content-Range`，`?download=1` 設 `Content-Disposition: attachment`。
     - 驗證：`backend/tests/test_audio_api.py` 9 passed；`backend/tests/` 244 passed；`compileall` 與 `git diff --check` 通過。
-    - 殘留風險：M4 後端持久化/歷史已完成；真實 Gemini / 人耳播放回歸仍留 M8，markdown 正規化待 TASK-014。
+    - 殘留風險：M4 後端持久化/歷史已完成；真實 Gemini / 人耳播放回歸仍留 M8，markdown 正規化已於 TASK-014 完成。
+14. **TASK-014 review**
+    - 狀態：REVIEW PASS；Critical/Major 無 blocker，acceptance criteria 已有 evidence。
+    - durable contract：`backend/app/ingest/markdown.py` 將 heading/list/code/link/paragraph 等 markdown 正規化為純文字；`POST /api/synthesize source='md'` 會先 normalize，再走既有 chunk/TTS/storage pipeline，DB/metadata `source` 寫入 `md`。
+    - 驗證：`backend/tests/` 283 passed；targeted markdown/synthesize 78 passed；`compileall` 與 `git diff --check` 通過。
+    - 殘留風險：特殊 Markdown/HTML 表格或巢狀結構的朗讀語意尚未以真實講稿人工回歸；前端 `.md` 上傳整合待 TASK-016。
 
 ---
 
@@ -190,7 +196,8 @@
 - [x] **M2**: 單塊短稿合成（TASK-003/004/005/006 pass，暫回 WAV bytes）
 - [x] **M3**: 切塊與串接（TASK-007/008 pass）
 - [x] **M4**: 持久化與歷史（TASK-009 SQLite metadata、TASK-010 file storage helper、TASK-011 synthesize storage integration、TASK-012 history/delete、TASK-013 audio endpoint 全部完成）
-- [ ] **M5**: markdown 正規化（TASK-014 待開）
+- [x] **M5**: markdown 正規化（TASK-014 pass）
+- [ ] **M6**: 前端核心（下一步 TASK-015 Next.js scaffolding + rewrites proxy）
 
 ### 最近完成
 
@@ -208,6 +215,7 @@
 - ✅ TASK-011：`POST /api/synthesize` 接入 DB + file storage，成功回 metadata/audio_url 並寫 `completed`，失敗回同一 id 並盡量寫 `error`。
 - ✅ TASK-012：`GET /api/history` 完成 limit/offset 分頁，`DELETE /api/history/{id}` 完成音檔 + metadata 刪除；檔案已不存在時仍可刪除 DB row。
 - ✅ TASK-013：`GET /api/audio/{id}` 完成 WAV serve、Range 206 與 `?download=1` attachment 下載；未知 id / missing file 回 404。
+- ✅ TASK-014：完成 markdown→plain text normalizer；`POST /api/synthesize source='md'` 會 normalize 後合成並將 DB/metadata `source` 寫為 `md`。
 
 #### 上週
 - ✅ [完成項目 1]：待補充
@@ -236,7 +244,7 @@
 
 ### 待確認事項
 - [x] plan 已 approved；4 項建議決策（WAV / proxy / Director's Notes / 雙條件切塊）皆採用
-- [ ] 下一步銜接 TASK-014 `ingest/markdown.py` + synthesize 接 `source`。
+- [ ] 下一步銜接 TASK-015 Next.js scaffolding + rewrites proxy。
 
 ### 討論備註
 [最近討論的重要內容...]
@@ -262,10 +270,11 @@
 | 2026-06-15 | TASK-011 synthesize 接 storage | 通過 | REVIEW PASS；synthesize+storage DB targeted 66 passed、backend 223 passed、compileall、diff check 通過 |
 | 2026-06-15 | TASK-012 history 分頁 + delete | 通過 | REVIEW PASS；history 12 passed、backend 235 passed、compileall、diff check 通過 |
 | 2026-06-15 | TASK-013 audio Range + download | 通過 | REVIEW PASS；audio API 9 passed、backend 244 passed、compileall、diff check 通過 |
+| 2026-06-15 | TASK-014 markdown normalizer + synthesize source | 通過 | REVIEW PASS；backend 283 passed、targeted 78 passed、compileall、diff check 通過 |
 
 ### 審查統計
-- 總審查次數：13
-- 通過審查：13
+- 總審查次數：14
+- 通過審查：14
 - 需修復：0
 
 ---
