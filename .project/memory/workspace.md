@@ -63,7 +63,8 @@
 - [x] 任務 12：完成 TASK-009 `storage/db.py` SQLite schema + CRUD（分頁，review/app gate pass）
 - [x] 任務 13：完成 TASK-010 `storage/files.py` 音檔存取 + 安全路徑（review/app gate pass）
 - [x] 任務 14：完成 TASK-011 synthesize 接 storage（取代 M2 暫時 contract；review/app gate pass）
-- [ ] 任務 15：下一步依 active plan 開 TASK-012 `GET /api/history` 分頁 + `DELETE /api/history/{id}`
+- [x] 任務 15：完成 TASK-012 `GET /api/history` 分頁 + `DELETE /api/history/{id}`（review/app gate pass）
+- [ ] 任務 16：下一步依 active plan 開 TASK-013 `GET /api/audio/{id}`（Range + 下載）
 
 ### 當前技術挑戰
 1. **TTS 切塊 + PCM 串接品質**（最高風險）
@@ -96,15 +97,15 @@
 
 ## 📊 模組開發狀態
 
-*最後更新：2026-06-15（TASK-011 review pass / update-memory）*
+*最後更新：2026-06-15（TASK-012 review pass / update-memory）*
 
 | 模組 | 功能 | 開發狀態 | 驗證狀態 | 說明 |
 |------|------|----------|----------|------|
 | config | 設定/金鑰 | 🟢 已完成 | 🟢 已驗證 | TASK-001：pydantic-settings 載入 `GEMINI_API_KEY`/`DATA_DIR`/`CORS_ORIGINS` |
-| api | FastAPI app + health/voices + chunked synthesize；history/audio 待續 | 🟡 部分完成 | 🟢 health/voices/synthesize 已驗證 | TASK-001：`/api/health`；TASK-002：`/api/voices`；TASK-011：`POST /api/synthesize` 支援短稿/長稿並回 `{id, created_at, metadata, audio_url}` |
+| api | FastAPI app + health/voices/synthesize/history；audio 待續 | 🟡 部分完成 | 🟢 health/voices/synthesize/history 已驗證 | TASK-001：`/api/health`；TASK-002：`/api/voices`；TASK-011：`POST /api/synthesize` 回 metadata/audio_url；TASK-012：`GET /api/history` 分頁 + `DELETE /api/history/{id}` |
 | tts | prompt 組裝器 + Gemini adapter + 雙條件切塊器 + 長稿 synthesize 整合完成 | 🟢 M3 已完成 | 🟢 prompt/client/chunker/synthesize mock 已驗證 | TASK-003/004/007/008；`count_tokens` 僅算 prompt overhead，chunk 內容本地估算 |
 | audio | PCM→WAV + 多塊 concat | 🟢 M3 已完成 | 🟢 PCM/WAV/concat 已驗證 | TASK-005/008：24kHz mono 16-bit 預設、frame alignment、stdlib `wave` WAV 封裝、raw PCM 多塊串接 |
-| storage | SQLite metadata + 檔案系統 | 🟡 部分完成 | 🟢 DB/file/synthesize integration 已驗證 | TASK-009：`storage/db.py` schema + create/list/get/delete；TASK-010：`storage/files.py` save/resolve/delete + path traversal 防護；TASK-011：synthesize 成功寫 `completed` row + WAV，失敗寫 `error` row；history/audio 待續 |
+| storage | SQLite metadata + 檔案系統 | 🟡 部分完成 | 🟢 DB/file/synthesize/history integration 已驗證 | TASK-009：`storage/db.py` schema + create/list/get/delete；TASK-010：`storage/files.py` save/resolve/delete + path traversal 防護；TASK-011：synthesize 寫 completed/error row；TASK-012：history list/delete 串 DB + file；audio endpoint 待續 |
 | ingest | markdown 正規化 | ⚫ 未開始 | ⚫ 未驗證 | M5 |
 | frontend | Next.js UI + 歷史 | ⚫ 未開始 | ⚫ 未驗證 | M6/M7 |
 
@@ -167,7 +168,12 @@
     - 狀態：REVIEW PASS；Critical/Major 無 blocker，Codex CLI review 未發現 correctness issue。
     - durable contract：`POST /api/synthesize` 已取代 M2/M3 暫時 WAV response；成功時寫入 WAV 檔與 `completed` DB row，回 `{id, created_at, metadata, audio_url}`；TTS/chunk/PCM/save 失敗時盡量寫入 `error` row 並回同一 `id`。
     - 驗證：`backend/tests/test_synthesize.py backend/tests/test_storage_db.py` 66 passed；`backend/tests/` 223 passed；`compileall` 與 `git diff --check` 通過。
-    - 殘留風險：`GET /api/history`、`DELETE /api/history/{id}` 與 `GET /api/audio/{id}` 仍待 TASK-012/013；真實 Gemini / 人耳播放回歸仍留 M8。
+    - 殘留風險：`GET /api/audio/{id}` 仍待 TASK-013；真實 Gemini / 人耳播放回歸仍留 M8。
+12. **TASK-012 review**
+    - 狀態：REVIEW PASS；Critical/Major/Minor/Suggestion 無 findings，未發現 out-of-scope diff。
+    - durable contract：`GET /api/history?limit=50&offset=0` 回 `items/total/limit/offset/has_more`，item 附 `audio_url`；`DELETE /api/history/{id}` 先確認 DB row，刪 `DATA_DIR/audio/{id}.wav` 後刪 DB row，檔案已不存在時仍可刪 row。
+    - 驗證：`backend/tests/test_history.py` 12 passed；`backend/tests/` 235 passed；`compileall`、`git diff --check` 與 trailing whitespace 檢查通過。
+    - 殘留風險：`GET /api/audio/{id}` Range/下載仍待 TASK-013；前端 history list/delete 使用待 M7。
 
 ---
 
@@ -177,7 +183,7 @@
 - [x] **M1**: 後端骨架（TASK-001 health/config + TASK-002 voices pass）
 - [x] **M2**: 單塊短稿合成（TASK-003/004/005/006 pass，暫回 WAV bytes）
 - [x] **M3**: 切塊與串接（TASK-007/008 pass）
-- [ ] **M4**: 持久化與歷史（TASK-009 SQLite metadata、TASK-010 file storage helper、TASK-011 synthesize storage integration 已完成；TASK-012 history/delete、TASK-013 audio endpoint 待開）
+- [ ] **M4**: 持久化與歷史（TASK-009 SQLite metadata、TASK-010 file storage helper、TASK-011 synthesize storage integration、TASK-012 history/delete 已完成；TASK-013 audio endpoint 待開）
 
 ### 最近完成
 
@@ -193,6 +199,7 @@
 - ✅ TASK-009：`storage/db.py` 完成 SQLite metadata schema + create/list/get/delete；分頁回 `items/total/limit/offset/has_more`，`source` 欄位已在 M4 建好。
 - ✅ TASK-010：`storage/files.py` 完成 `DATA_DIR/audio/{id}.wav` 安全路徑解析、寫檔與刪檔；拒絕 `../`、絕對路徑、null byte 與非法 id。
 - ✅ TASK-011：`POST /api/synthesize` 接入 DB + file storage，成功回 metadata/audio_url 並寫 `completed`，失敗回同一 id 並盡量寫 `error`。
+- ✅ TASK-012：`GET /api/history` 完成 limit/offset 分頁，`DELETE /api/history/{id}` 完成音檔 + metadata 刪除；檔案已不存在時仍可刪除 DB row。
 
 #### 上週
 - ✅ [完成項目 1]：待補充
@@ -221,7 +228,7 @@
 
 ### 待確認事項
 - [x] plan 已 approved；4 項建議決策（WAV / proxy / Director's Notes / 雙條件切塊）皆採用
-- [ ] 下一步銜接 TASK-012 `GET /api/history` 分頁 + `DELETE /api/history/{id}`。
+- [ ] 下一步銜接 TASK-013 `GET /api/audio/{id}`（Range + 下載）。
 
 ### 討論備註
 [最近討論的重要內容...]
@@ -245,10 +252,11 @@
 | 2026-06-15 | TASK-009 `storage/db.py` SQLite schema + CRUD | 通過 | REVIEW PASS；已修正 singleton 測試隔離；24 storage DB tests、180 backend tests、compileall、diff check 通過 |
 | 2026-06-15 | TASK-010 `storage/files.py` 音檔存取 + 安全路徑 | 通過 | REVIEW PASS；28 storage files tests、208 backend tests、compileall、diff check 通過 |
 | 2026-06-15 | TASK-011 synthesize 接 storage | 通過 | REVIEW PASS；synthesize+storage DB targeted 66 passed、backend 223 passed、compileall、diff check 通過 |
+| 2026-06-15 | TASK-012 history 分頁 + delete | 通過 | REVIEW PASS；history 12 passed、backend 235 passed、compileall、diff check 通過 |
 
 ### 審查統計
-- 總審查次數：11
-- 通過審查：11
+- 總審查次數：12
+- 通過審查：12
 - 需修復：0
 
 ---

@@ -3,6 +3,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.history import router as history_router
 from app.api.synthesize import router as synthesize_router
 from app.api.voices import router as voices_router
 from app.config import settings
@@ -37,3 +38,4 @@ async def health_check() -> dict[str, str]:
 
 app.include_router(synthesize_router)
 app.include_router(voices_router)
+app.include_router(history_router)
