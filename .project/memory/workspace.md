@@ -58,14 +58,15 @@
 - [x] 任務 7：完成 TASK-004 `tts/client.py` Gemini adapter（mock tests pass，lazy google import，review/app gate pass）
 - [x] 任務 8：完成 TASK-005 `audio/pcm.py` PCM→WAV（review/app gate pass）
 - [x] 任務 9：完成 TASK-006 `POST /api/synthesize` 短稿合成（M2 暫時回 WAV bytes，review pass）
-- [ ] 任務 10：下一步依 active plan 開 TASK-007 `tts/chunker.py` 雙條件切塊
+- [x] 任務 10：完成 TASK-007 `tts/chunker.py` 雙條件切塊（review/app 仲裁驗證：REVIEW PASS）
+- [ ] 任務 11：下一步依 active plan 開 TASK-008 PCM 多塊串接 + 長稿 synthesize
 
 ### 當前技術挑戰
 1. **TTS 切塊 + PCM 串接品質**（最高風險）
-   - 狀態：TASK-005 已完成 PCM frame alignment 與 raw PCM→WAV；TASK-008 仍需多塊串接 + 長稿整合驗證
-   - 方向：**雙條件切塊**（count_tokens ~7,500 + `MAX_CHUNK_CHARS≈2,500` 可調常數，M3 實測校正）、切點落自然停頓、raw PCM 串接再一次封裝 WAV
-   - ⚠️ 實作約束：token 須以**完整 rendered prompt**（preamble+Director's Notes+TRANSCRIPT）計，勿只算 transcript；TASK-003 已固定輸出三段並對 voice/style/pacing/accent 做單行 sanitizer，降低 section marker injection 造成的 overhead/邊界漂移
-   - 接縫測試（程序化）：Σsample 守恆、frame-alignment 斷言、sine PCM 多塊復原比對；**不**用 sample 差值閾值判接縫（獨立合成語音會 flaky）→ 感知層人耳回歸
+   - 狀態：TASK-007 已完成雙條件切塊器；TASK-008 仍需整合 Gemini `count_tokens`、long synthesize 與 PCM 多塊串接。
+   - 已落地能力：token limit + char limit、段落優先、句子 fallback、CJK 標點無空白句界、no-space / single long word 的 token-aware char fallback。
+   - token accounting：預設 heuristic 以完整 `build_prompt(chunk, style, pacing, accent, voice)` 估 token；explicit overhead/custom counter path 使用 `TOKEN_ACCOUNTING_MARGIN = 1`，prompt overhead 超 budget 會 raise `ChunkingError`。
+   - 接縫測試（程序化）：Σsample 守恆、frame-alignment 斷言、sine PCM 多塊復原比對；**不**用 sample 差值閾值判接縫（獨立合成語音會 flaky）→ 感知層人耳回歸。
 
 2. **語速/語氣控制**（已解除為低風險）
    - 狀態：機制已確認（官方文件 + Context7）
@@ -90,13 +91,13 @@
 
 ## 📊 模組開發狀態
 
-*最後更新：2026-06-15（TASK-006 review pass / update-memory）*
+*最後更新：2026-06-15（TASK-007 review pass / update-memory）*
 
 | 模組 | 功能 | 開發狀態 | 驗證狀態 | 說明 |
 |------|------|----------|----------|------|
 | config | 設定/金鑰 | 🟢 已完成 | 🟢 已驗證 | TASK-001：pydantic-settings 載入 `GEMINI_API_KEY`/`DATA_DIR`/`CORS_ORIGINS` |
 | api | FastAPI app + health/voices + M2 synthesize；history/audio 待續 | 🟡 部分完成 | 🟢 health/voices/synthesize 已驗證 | TASK-001：`/api/health`；TASK-002：`/api/voices`；TASK-006：短稿 `POST /api/synthesize` 串 prompt→Gemini adapter→PCM→WAV，暫回 `audio/wav` bytes |
-| tts | prompt 組裝器 + Gemini adapter 已完成；切塊待續 | 🟡 部分完成 | 🟢 prompt/client mock 已驗證 | TASK-003 prompt；TASK-004 client：lazy google import、audio inline_data 健全性檢查、retry/backoff、502/504 mapping、count_tokens |
+| tts | prompt 組裝器 + Gemini adapter + 雙條件切塊器已完成；long synthesize 整合待續 | 🟡 部分完成 | 🟢 prompt/client/chunker mock 已驗證 | TASK-003 prompt；TASK-004 client；TASK-007 chunker：完整 prompt token accounting、段落/句子/char fallback |
 | audio | PCM→WAV 串接 | 🟡 部分完成 | 🟢 PCM→WAV 已驗證 | TASK-005：24kHz mono 16-bit 預設、frame alignment、stdlib `wave` WAV 封裝；多塊 concat/integration 待 TASK-008 |
 | storage | SQLite + 檔案系統 | ⚫ 未開始 | ⚫ 未驗證 | M4 |
 | ingest | markdown 正規化 | ⚫ 未開始 | ⚫ 未驗證 | M5 |
@@ -135,7 +136,12 @@
    - durable contract：M2 `POST /api/synthesize` 直接回 `audio/wav` bytes；M4 才切換 `{id, created_at, metadata, audio_url}` 與 storage/metadata 流程。
    - 驗證：`text`/`voice` whitespace-only 回 422；`voice` strip 後送 client；transcript text 保留原始內容；`TtsClientError` 依 `status_code` 回應；PCM/WAV conversion 問題回 502。
    - 證據：`backend/tests/test_synthesize.py` 16 passed；`backend/tests/` 90 passed；`compileall` 通過；`git diff --check` 通過。
-   - 殘留風險：尚未做真實 Gemini API 呼叫、人耳播放檢查、storage/chunking/audio_url metadata；下一步 TASK-007。
+   - 殘留風險：尚未做真實 Gemini API 呼叫、人耳播放檢查、storage/audio_url metadata；chunking 已於 TASK-007 完成，long synthesize 整合待 TASK-008。
+7. **TASK-007 review**
+   - 狀態：REVIEW PASS；Critical/Major/Minor/Suggestion 無 findings，acceptance criteria 已有 evidence。
+   - durable contract：`backend/app/tts/chunker.py` 提供雙條件切塊；token budget 以完整 prompt 或 explicit overhead/custom counter + 1-token margin 計算，prompt overhead 超 budget 會 raise `ChunkingError`。
+   - 驗證：`backend/tests/test_chunker.py` 45 passed；`backend/tests/` 135 passed；`compileall`、`git diff --check`、no-index whitespace、舊 tolerance 掃描通過。Regression：`"a" * 1690` 在 `max_tokens=500` 下不再產生 full prompt 501，chunks full prompt tokens = 500 / 78。
+   - 殘留風險：尚未呼叫真實 Gemini `count_tokens`；TASK-008 需整合 chunker + Gemini `count_tokens`/long synthesize + PCM concat。
 
 ---
 
@@ -144,7 +150,7 @@
 ### 專案里程碑
 - [x] **M1**: 後端骨架（TASK-001 health/config + TASK-002 voices pass）
 - [x] **M2**: 單塊短稿合成（TASK-003/004/005/006 pass，暫回 WAV bytes）
-- [ ] **M3**: 測試和優化
+- [ ] **M3**: 切塊與串接（TASK-007 pass；TASK-008 待續）
 - [ ] **M4**: 部署上線
 
 ### 最近完成
@@ -156,6 +162,7 @@
 - ✅ TASK-004：`tts/client.py` 封裝 Gemini TTS 單塊 adapter、audio response 健全性檢查、retry/backoff、502/504 mapping 與 `count_tokens`。
 - ✅ TASK-005：`audio/pcm.py` 提供 raw PCM 24kHz mono 16-bit 預設、frame alignment 檢查與 stdlib `wave` WAV 封裝。
 - ✅ TASK-006：`POST /api/synthesize` 完成短稿單塊合成路由，整合 prompt builder、Gemini TTS adapter 與 PCM→WAV helper；M2 暫回 `audio/wav` bytes。
+- ✅ TASK-007：`tts/chunker.py` 完成雙條件切塊器，覆蓋完整 prompt token accounting、段落/句子 fallback、CJK/no-space/single long word fallback。
 
 #### 上週
 - ✅ [完成項目 1]：待補充
@@ -182,7 +189,7 @@
 
 ### 待確認事項
 - [x] plan 已 approved；4 項建議決策（WAV / proxy / Director's Notes / 雙條件切塊）皆採用
-- [ ] 下一步銜接 TASK-007 `tts/chunker.py` 雙條件切塊。
+- [ ] 下一步銜接 TASK-008 PCM 多塊串接 + 長稿 synthesize。
 
 ### 討論備註
 [最近討論的重要內容...]
@@ -201,10 +208,11 @@
 | 2026-06-15 | TASK-004 `tts/client.py` Gemini adapter | 通過 | REVIEW PASS；mock 覆蓋 normal/invalid/timeout/count_tokens；49 backend tests 通過 |
 | 2026-06-15 | TASK-005 `audio/pcm.py` PCM→WAV | 通過 | REVIEW PASS；frame alignment/WAV header/frame count/roundtrip/custom params 已覆蓋；74 backend tests 通過 |
 | 2026-06-15 | TASK-006 `POST /api/synthesize` 短稿合成 | 通過 | REVIEW PASS；Critical/Major 無 blocker；16 synthesize tests、90 backend tests、compileall、diff check 通過 |
+| 2026-06-15 | TASK-007 `tts/chunker.py` 雙條件切塊 | 通過 | REVIEW PASS；Critical/Major/Minor/Suggestion 無 findings；45 chunker tests、135 backend tests、compileall、diff/whitespace checks 通過 |
 
 ### 審查統計
-- 總審查次數：6
-- 通過審查：6
+- 總審查次數：7
+- 通過審查：7
 - 需修復：0
 
 ---
