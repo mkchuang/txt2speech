@@ -31,16 +31,16 @@
 
 ### 整體架構
 ```
-┌─────────────────┐  POST /synthesize    ┌────────────────────────────────────┐
+┌─────────────────┐  POST /api/synthesize ┌────────────────────────────────────┐
 │  Frontend        │ ───(text+params)───▶ │       Python FastAPI Backend        │
-│  Next.js (TS)    │ ◀──(audio meta)───── │                                     │
+│  Next.js (TS)    │ ◀──(audio meta)───── │  （/api/* 經 next rewrite 同路徑）    │
 │  輸入/參數       │                       │ ┌────────┐  ┌──────────────────┐   │
-│  播放器/歷史清單 │  GET /history         │ │ api    │─▶│ tts              │   │
+│  播放器/歷史清單 │  GET /api/history     │ │ api    │─▶│ tts              │   │
 │                  │ ◀──(list)─────────── │ │ 驗證   │  │ prompt組裝+切塊   │───┼─▶ Gemini TTS
-│                  │  GET /audio/{id}      │ │ md正規 │  │ (8192-token上限)  │   │  (gemini-3.1-
+│                  │  GET /api/audio/{id}  │ │ md正規 │  │ (8192-token上限)  │   │  (gemini-3.1-
 │                  │ ◀──(play/download)─── │ └───┬────┘  └────────┬─────────┘   │   flash-tts-preview)
 └─────────────────┘                        │     │      ┌─────────▼─────────┐  │  ◀── PCM 24kHz
-                                           │     │      │ audio:PCM→WAV/MP3 │  │
+                                           │     │      │ audio: PCM→WAV     │  │
                                            │     ▼      └─────────┬─────────┘  │
                                            │ ┌──────────────────────▼────────┐ │
                                            │ │ storage: SQLite(metadata)      │ │
@@ -55,10 +55,10 @@
 | 模組 | 功能 | 技術 | 狀態 |
 |------|------|------|------|
 | frontend | 講稿輸入（貼上 / 上傳 .md）、參數選項（voice/語速/風格）、播放器、歷史清單、下載 | Next.js + TS | ⚫ 未開始 |
-| api | `/synthesize`、`/history`、`/audio/{id}` 端點、md→純文字正規化、驗證、CORS | FastAPI | ⚫ 未開始 |
-| tts | google-genai 呼叫、style prompt + audio tags 組裝、8192-token 切塊 | google-genai | ⚫ 未開始 |
-| audio | PCM 24kHz → WAV/MP3、多片段串接 | pydub/ffmpeg | ⚫ 未開始 |
-| storage | 持久化音檔（檔案系統）+ metadata（SQLite）、歷史清單查詢 | SQLite + fs | ⚫ 未開始 |
+| api | `/api/synthesize`、`/api/history`、`/api/audio/{id}` 端點、md→純文字正規化、驗證、CORS | FastAPI | ⚫ 未開始 |
+| tts | google-genai 呼叫、prompt 組裝（preamble+Director's Notes+TRANSCRIPT+inline tags）、雙條件切塊、回應健全性檢查+retry | google-genai | ⚫ 未開始 |
+| audio | 多塊 raw PCM 24kHz 串接 → WAV（MP3 選用 ffmpeg） | stdlib `wave` | ⚫ 未開始 |
+| storage | 持久化音檔（檔案系統）+ metadata（SQLite）、歷史分頁查詢 | SQLite + fs | ⚫ 未開始 |
 | config | `GEMINI_API_KEY`、設定管理 | pydantic-settings | ⚫ 未開始 |
 
 ### 設計模式
@@ -67,13 +67,15 @@
 - **Metadata/檔案分離**：SQLite 存 metadata，音檔存檔案系統，以 id 關聯。
 
 ### 通訊機制
-- 前端 → 後端：HTTP（前端 fetch FastAPI；以 Next.js rewrite/proxy 或 CORS 連線）。
+- 前端 → 後端：HTTP，前端一律呼叫 `/api/*`，由 **Next.js `rewrites` 同路徑 proxy** 到 FastAPI :8000（免 CORS）。
 - 後端 → Gemini：`google-genai` SDK（HTTPS）。
 
 ### API 端點（草案）
-- `POST /synthesize`：文字/md + 參數 → 合成、存歷史，回傳 record id 與 metadata。
-- `GET /history`：歷史清單（id、時間、文字摘要、voice、參數）。
-- `GET /audio/{id}`：serve 音檔，支援線上播放（Range）與下載（`?download=1`）。
+- `POST /api/synthesize`：文字/md + 參數 → 合成、存歷史，回傳 record id 與 metadata。
+- `GET /api/history?limit=50&offset=0`：歷史清單分頁，回 `items/total/limit/offset/has_more`。
+- `GET /api/audio/{id}`：serve 音檔，支援線上播放（Range）與下載（`?download=1`）。
+- `GET /api/voices`：回 30 種預建 voice 清單（前端下拉選單）。
+- `DELETE /api/history/{id}`：刪除單筆歷史（檔案 + metadata）。
 
 ## 🔧 技術上下文
 
@@ -95,8 +97,9 @@
 - 後端為唯一對外呼叫 Gemini 的出口，前端不直接持金鑰。
 
 ## ⚠️ 主要風險與未決問題
-- **TTS 輸入 8192-token 上限**：長講稿必須切塊；需處理片段串接接縫。
-- **語速控制方式**：Gemini TTS 無直接 speed 參數，需靠 prompt / audio tags 表達語速，效果待實測驗證。
+- **TTS 輸入 8192-token 上限**：長講稿必須切塊；需處理片段串接接縫（最高風險）。
+- **語速控制方式**（已降為低風險）：經官方文件確認可用 Director's Notes `Pacing:` + inline `[very slow/fast]` 控制，寫在 prompt 內；細部以實測微調。
+- **SynthID 浮水印**：Gemini TTS 所有輸出皆內嵌隱形 AI 浮水印（產品事實，無需處理，使用者知悉即可）。
 - **Preview 模型變動**：`gemini-3.1-flash-tts-preview` 為 preview，API 可能變動，以 adapter 隔離。
 - **前後端協調**：CORS / proxy 需設定妥當（前端連後端 :8000）。
 - **成本與速率限制**：不做快取，每次重新產生會持續消耗音訊 tokens（已知取捨）。

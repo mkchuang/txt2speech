@@ -14,7 +14,7 @@
 |------|------|------|----------|
 | project.md | ✅ 已初始化（/adf.design） | - | 2026-06-15 |
 | workspace.md | ✅ 已初始化 | - | 2026-06-15 |
-| current.md | ❌ 尚未建立（待 /adf.planner） | - | - |
+| current.md | ✅ 指向 plan-2026-06-15-gemini-tts-speech-practice（approved） | - | 2026-06-15 |
 
 ### 維護提醒
 - 當前文件大小：[行數]
@@ -39,7 +39,7 @@
 | 項目 | 內容 |
 |------|------|
 | **採用方案** | Next.js 前端 + Python FastAPI 後端，純 Gemini TTS（無教練 LLM） |
-| **設計文件** | project brief 已寫入 project.md；細部 plan 待 /adf.planner |
+| **設計文件** | plan-2026-06-15-gemini-tts-speech-practice.md（**approved**）；ADR-001；tasks-2026-06-15-...md（18 TASK） |
 | **選定原因** | 需求收斂為「帶參數控制的 Gemini TTS 練講工具」；前端簡單(Next.js)、後端沿用 Python 呼叫 google-genai |
 | **關鍵決策** | ①不引入教練 LLM，靠 TTS prompt+audio tags ②TTS=gemini-3.1-flash-tts-preview ③本機各自啟動（next dev / uvicorn），不用 PM2 ④發音依文檔內建能力 ⑤輸入=貼上文字或上傳.md ⑥單一 phase、不做去重快取、每次重新產生 ⑦歷史紀錄：SQLite(metadata)+檔案系統(音檔)，提供查看/線上播放/下載 |
 | **最後更新** | 2026-06-15 |
@@ -50,25 +50,35 @@
 
 ### 本週主要任務
 - [x] 任務 1：以 /adf.design 定義專案大框架（完成）
-- [ ] 任務 2：執行 /adf.planner 產出單一 phase implementation plan
-- [ ] 任務 3：建立 Next.js + FastAPI 骨架（本機 next dev / uvicorn 各自啟動）
+- [x] 任務 2：/adf.planner 產出 whole-project plan（已 approved）
+- [x] 任務 3：/adf.breakdown 拆出 18 個 TASK（tasks-2026-06-15-...md）
+- [ ] 任務 4：/adf.develop 從 TASK-001 開始實作（關鍵路徑 001→004→008→011→013→016→018）
 
 ### 當前技術挑戰
-1. **挑戰 1**: [問題描述]
-   - 狀態：[進行中/已解決]
-   - 方向：[解決方向]
+1. **TTS 切塊 + PCM 串接品質**（最高風險）
+   - 狀態：規劃（排 pytest 必測）
+   - 方向：**雙條件切塊**（count_tokens ~7,500 + `MAX_CHUNK_CHARS≈2,500` 可調常數，M3 實測校正）、切點落自然停頓、raw PCM 串接再一次封裝 WAV
+   - ⚠️ 實作約束：token 須以**完整 rendered prompt**（preamble+Director's Notes+TRANSCRIPT）計，勿只算 transcript（否則加 notes 後逼近 8192 上限）
+   - 接縫測試（程序化）：Σsample 守恆、frame-alignment 斷言、sine PCM 多塊復原比對；**不**用 sample 差值閾值判接縫（獨立合成語音會 flaky）→ 感知層人耳回歸
 
-2. **挑戰 2**: [問題描述]
-   - 狀態：[進行中/已解決]
-   - 方向：[解決方向]
+2. **語速/語氣控制**（已解除為低風險）
+   - 狀態：機制已確認（官方文件 + Context7）
+   - 方向：Director's Notes（Style/Pacing/Accent）+ inline audio tags 寫入 contents prompt；語速由 Pacing 控制。tags 非窮舉→前端給預設選項 + 自由文字框
+
+3. **preview 模型可能變動**
+   - 狀態：已緩解設計
+   - 方向：tts/ adapter 為唯一 AI 邊界，隔離 API 變動
 
 ### 短期目標（本月）
-- 目標 1：待補充
-- 目標 2：待補充
+- 目標 1：取得 plan 批准 → breakdown / develop（M1→M8）
+- 目標 2：完成 M1–M4（後端骨架 + 合成 + 切塊串接 + 持久化/歷史）
 
 ### 待解決問題
-- [ ] 問題 1：待補充
-- [ ] 問題 2：待補充
+- [x] plan-2026-06-15-gemini-tts-speech-practice 已 **approved**（2026-06-15），已 breakdown 為 18 TASK
+- [x] Q1 語速控制 → 已確認（Director's Notes Pacing + inline tags）
+- [x] Q3 歷史分頁 → 已決策：limit/offset + Load more，無搜尋（納入 M4）
+- [x] Q4 重點強調 → 已決策：手動 inline tags + preset buttons + 自由 Director's Notes；選段強調列後續
+- [ ] Q2 是否需 MP3 輸出（牽涉 ffmpeg 依賴；預設不做，WAV via stdlib wave）
 
 ---
 
@@ -78,8 +88,13 @@
 
 | 模組 | 功能 | 開發狀態 | 驗證狀態 | 說明 |
 |------|------|----------|----------|------|
-| 範例模組 1 | 待補充 | ⚫ 未開始 | ⚫ 未驗證 | - |
-| 範例模組 2 | 待補充 | ⚫ 未開始 | ⚫ 未驗證 | - |
+| config | 設定/金鑰 | ⚫ 未開始 | ⚫ 未驗證 | M1 |
+| api | 路由 synthesize/history/audio/voices | ⚫ 未開始 | ⚫ 未驗證 | M1/M4 |
+| tts | Gemini adapter + 切塊 | ⚫ 未開始 | ⚫ 未驗證 | M2/M3，最高風險 |
+| audio | PCM→WAV 串接 | ⚫ 未開始 | ⚫ 未驗證 | M2/M3 |
+| storage | SQLite + 檔案系統 | ⚫ 未開始 | ⚫ 未驗證 | M4 |
+| ingest | markdown 正規化 | ⚫ 未開始 | ⚫ 未驗證 | M5 |
+| frontend | Next.js UI + 歷史 | ⚫ 未開始 | ⚫ 未驗證 | M6/M7 |
 
 ### 狀態圖例
 - ⚫ **未開始**: 尚未開始開發/測試
@@ -126,11 +141,15 @@
 
 | 日期 | 決策 | 原因 | ADR |
 |------|------|------|-----|
-| [日期] | [決策內容] | [原因] | [ADR-XXX] |
+| 2026-06-15 | TTS-only、prompt 驅動，不引入教練 LLM | TTS 模型不支援 structured output；使用者要簡單 | ADR-001 |
+| 2026-06-15 | 合成執行採同步（方案 A） | 本機單人、最小複雜度（加權 7.85 vs 6.05） | plan 決策表 |
+| 2026-06-15 | 輸出 WAV（raw PCM 串接，免 ffmpeg）；前後端用 next rewrites proxy | 降依賴、免 CORS | plan 決策表 |
+| 2026-06-15 | TTS 控制用 Director's Notes(Style/Pacing/Accent)+inline tags，寫入 contents | 官方確認語法；語速/重點可控，免教練 LLM | ADR-001 |
+| 2026-06-15 | validate-plan=WARN，修 5 項 contract drift（/api/* 統一、雙條件切塊、TTS retry/空音訊、WAV 去 ffmpeg、M2 暫時 contract）+ 定 Q3/Q4 | 進 breakdown 前收斂漂移 | plan |
 
 ### 待確認事項
-- [ ] [待確認 1]
-- [ ] [待確認 2]
+- [x] plan 已 approved；4 項建議決策（WAV / proxy / Director's Notes / 雙條件切塊）皆採用
+- [ ] 是否先 commit 設計基線再進 develop
 
 ### 討論備註
 [最近討論的重要內容...]

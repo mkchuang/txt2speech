@@ -1,0 +1,1 @@
+plan-2026-06-15-gemini-tts-speech-practice.md

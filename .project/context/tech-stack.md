@@ -23,7 +23,8 @@
 | Uvicorn | latest | ASGI server |
 | google-genai | latest | Gemini SDK（呼叫 TTS 模型） |
 | pydantic-settings | latest | 設定與機密管理（`GEMINI_API_KEY`） |
-| pydub / ffmpeg | latest | PCM 24kHz → WAV/MP3、片段串接 |
+| `wave`（Python 內建） | 內建 | 多塊 raw PCM 24kHz 串接 → WAV（主要輸出，無外部依賴） |
+| ffmpeg / pydub | latest | **選用**，僅在需要 MP3 輸出時引入（預設不裝） |
 | SQLite | 內建（Python `sqlite3`） | 歷史 metadata 儲存（音檔存檔案系統） |
 
 ## 建置工具
