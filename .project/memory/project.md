@@ -58,7 +58,7 @@
 | api | FastAPI app、CORS、`/api/health`、`/api/voices` 與 M3 `POST /api/synthesize` 長稿切塊合成已落地；history/audio、md→純文字正規化待續 | FastAPI | 🟡 部分完成（TASK-001/002/006/008） |
 | tts | prompt 組裝、Gemini adapter 與雙條件切塊器已落地（完整 prompt token accounting；段落/句子/char fallback；lazy google-genai import；audio inline_data 健全性檢查+retry；502/504 mapping；Gemini `count_tokens` 僅用於 prompt overhead，chunk 內容用本地估算避免逐 candidate 遠端呼叫） | google-genai | 🟢 M3 已完成（TASK-003/004/007/008） |
 | audio | raw PCM 24kHz mono 16-bit → WAV 封裝、frame alignment 與多塊 raw PCM concat 已落地，長稿路由會串接後一次封裝 WAV | stdlib `wave` | 🟢 M3 已完成（TASK-005/008） |
-| storage | SQLite metadata schema + create/list/get/delete 已落地（含 `source` 預設 `text`、limit/offset 分頁）；音檔檔案系統、history/audio 整合待續 | SQLite + fs | 🟡 部分完成（TASK-009） |
+| storage | SQLite metadata schema + create/list/get/delete 已落地（含 `source` 預設 `text`、limit/offset 分頁）；`DATA_DIR/audio/{id}.wav` 安全路徑解析/寫檔/刪檔已落地；synthesize/history/audio API 整合待續 | SQLite + fs | 🟡 部分完成（TASK-009/010） |
 | config | `GEMINI_API_KEY`、`DATA_DIR`、`CORS_ORIGINS` 設定管理 | pydantic-settings | 🟢 已完成（TASK-001） |
 
 ### 設計模式
