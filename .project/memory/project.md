@@ -54,7 +54,7 @@
 
 | 模組 | 功能 | 技術 | 狀態 |
 |------|------|------|------|
-| frontend | App Router + TypeScript scaffold 已建立；`next.config.ts` 以 `/api/:path*` 同路徑 rewrite proxy 到 FastAPI :8000；主頁 UI/api-client/播放器/歷史待 TASK-016/017 | Next.js + TS | 🟡 M6 scaffold/proxy 已完成（TASK-015） |
+| frontend | App Router + TypeScript scaffold、`/api/:path*` 同路徑 rewrite proxy、主頁 UI、api-client、AudioPlayer 已建立；歷史清單待 TASK-017 | Next.js + TS | 🟢 M6 前端核心已完成（TASK-015/016）；M7 HistoryList 待 TASK-017 |
 | api | FastAPI app、CORS、`/api/health`、`/api/voices`、`POST /api/synthesize` 長稿切塊合成 + metadata/audio_url contract、history 分頁/DELETE、audio Range/下載已落地；`source='md'` 會先 markdown→plain text 後合成並寫 metadata | FastAPI | 🟢 後端 M5 已完成（TASK-001/002/006/008/011/012/013/014） |
 | ingest | markdown→plain text normalizer：heading/list/code/link/paragraph 等純文字化，供 `POST /api/synthesize source='md'` 使用 | Python markdown + BeautifulSoup | 🟢 M5 已完成（TASK-014） |
 | tts | prompt 組裝、Gemini adapter 與雙條件切塊器已落地（完整 prompt token accounting；段落/句子/char fallback；lazy google-genai import；audio inline_data 健全性檢查+retry；502/504 mapping；Gemini `count_tokens` 僅用於 prompt overhead，chunk 內容用本地估算避免逐 candidate 遠端呼叫） | google-genai | 🟢 M3 已完成（TASK-003/004/007/008） |
@@ -103,7 +103,7 @@
 - **SynthID 浮水印**：Gemini TTS 所有輸出皆內嵌隱形 AI 浮水印（產品事實，無需處理，使用者知悉即可）。
 - **Preview 模型變動**：`gemini-3.1-flash-tts-preview` 為 preview，API 可能變動，以 adapter 隔離。
 - **Markdown 正規化語意保留**：TASK-014 已覆蓋 heading/list/code/link/paragraph 等純文字化；殘留風險為特殊 Markdown/HTML 表格或巢狀結構的朗讀語意需在前端上傳與真實講稿回歸時觀察。
-- **前後端協調**：TASK-015 已落地 Next.js rewrites，同路徑 proxy `/api/:path*` → `http://localhost:8000/api/:path*`；殘留風險為 TASK-016/017 前端 API client、播放器與 history 操作需維持此 contract，並以真實 synthesize/playback 做整合回歸。
+- **前後端協調**：TASK-015/016 已落地 Next.js rewrites、主頁 UI、api-client 與 AudioPlayer；App gate 以 mock backend + Next dev 驗證文字/.md 輸入、播放、下載與桌機/手機無水平 overflow。殘留風險為 TASK-017 history 操作需維持 `/api/*` contract，並以真實 Gemini synthesize/playback 做 M8 整合回歸。
 - **成本與速率限制**：不做快取，每次重新產生會持續消耗音訊 tokens（已知取捨）。
 
 ## 🗺️ 範圍（單一 Phase）

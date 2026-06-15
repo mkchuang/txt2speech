@@ -67,7 +67,8 @@
 - [x] 任務 16：完成 TASK-013 `GET /api/audio/{id}`（Range + 下載；review/app gate pass）
 - [x] 任務 17：完成 TASK-014 markdown→plain text normalizer + synthesize 接 `source`（review/app gate pass）
 - [x] 任務 18：完成 TASK-015 Next.js scaffolding + rewrites proxy（review/app 仲裁驗證：REVIEW PASS）
-- [ ] 下一步：依 active plan 開 TASK-016 主頁 UI + api-client + AudioPlayer
+- [x] 任務 19：完成 TASK-016 主頁 UI + api-client + AudioPlayer（code review / Codex app 仲裁驗證：REVIEW PASS）
+- [ ] 下一步：依 active plan 開 TASK-017 HistoryList 清單（分頁 + 操作）
 
 ### 當前技術挑戰
 1. **TTS 切塊 + PCM 串接品質**（最高風險）
@@ -88,7 +89,8 @@
 ### 短期目標（本月）
 - 目標 1：完成 M1（TASK-001 + TASK-002 已 pass）
 - 目標 2：完成 M1–M5（後端骨架 + 合成 + 切塊串接 + 持久化/歷史 + markdown 正規化）
-- 目標 3：完成 M6 前端核心（TASK-015 scaffold/proxy 已完成；下一步 TASK-016）
+- 目標 3：完成 M6 前端核心（TASK-015 scaffold/proxy + TASK-016 主頁 UI/api-client/AudioPlayer 已完成）
+- 目標 4：開 TASK-017 HistoryList，完成 M7 前端歷史清單播放/下載/刪除
 
 ### 待解決問題
 - [x] plan-2026-06-15-gemini-tts-speech-practice 已 **approved**（2026-06-15），已 breakdown 為 18 TASK
@@ -101,7 +103,7 @@
 
 ## 📊 模組開發狀態
 
-*最後更新：2026-06-15（TASK-015 review pass / update-memory）*
+*最後更新：2026-06-15（TASK-016 review pass / update-memory）*
 
 | 模組 | 功能 | 開發狀態 | 驗證狀態 | 說明 |
 |------|------|----------|----------|------|
@@ -111,7 +113,7 @@
 | audio | PCM→WAV + 多塊 concat | 🟢 M3 已完成 | 🟢 PCM/WAV/concat 已驗證 | TASK-005/008：24kHz mono 16-bit 預設、frame alignment、stdlib `wave` WAV 封裝、raw PCM 多塊串接 |
 | storage | SQLite metadata + 檔案系統 | 🟢 M4 已完成 | 🟢 DB/file/synthesize/history/audio integration 已驗證 | TASK-009：`storage/db.py` schema + create/list/get/delete；TASK-010：`storage/files.py` save/resolve/delete + path traversal 防護；TASK-011：synthesize 寫 completed/error row；TASK-012：history list/delete 串 DB + file；TASK-013：audio endpoint 讀 `DATA_DIR/audio/{id}.wav` |
 | ingest | markdown→plain text normalizer | 🟢 M5 已完成 | 🟢 heading/list/code/link/paragraph 與 synthesize md source 已驗證 | TASK-014 |
-| frontend | Next.js scaffold + rewrites proxy；主頁 UI/api-client/播放器/歷史待後續 | 🟡 M6 scaffold/proxy 已完成 | 🟢 lint/tsc/proxy smoke/audit 已驗證 | TASK-015：App Router + TypeScript，無 Tailwind；`/api/:path*` 同路徑 proxy 到 FastAPI :8000；`frontend/package.json` overrides 固定 `postcss@8.5.15`；generator nested `AGENTS.md`/`CLAUDE.md` 已移除 |
+| frontend | Next.js scaffold + rewrites proxy + 主頁 UI/api-client/AudioPlayer；HistoryList 待 TASK-017 | 🟢 M6 前端核心已完成 | 🟢 lint/tsc/audit/ci dry-run/app gate smoke 已驗證 | TASK-015：App Router + TypeScript，無 Tailwind；`/api/:path*` 同路徑 proxy 到 FastAPI :8000。TASK-016：文字/.md 輸入、voice/style/pacing/accent、inline tag insertion、生成後播放/下載已接 API contract |
 
 ### 狀態圖例
 - ⚫ **未開始**: 尚未開始開發/測試
@@ -187,12 +189,17 @@
     - 狀態：REVIEW PASS；Critical/Major 無 blocker，acceptance criteria 已有 evidence。
     - durable contract：`backend/app/ingest/markdown.py` 將 heading/list/code/link/paragraph 等 markdown 正規化為純文字；`POST /api/synthesize source='md'` 會先 normalize，再走既有 chunk/TTS/storage pipeline，DB/metadata `source` 寫入 `md`。
     - 驗證：`backend/tests/` 283 passed；targeted markdown/synthesize 78 passed；`compileall` 與 `git diff --check` 通過。
-    - 殘留風險：特殊 Markdown/HTML 表格或巢狀結構的朗讀語意尚未以真實講稿人工回歸；前端 `.md` 上傳整合待 TASK-016。
+    - 殘留風險：特殊 Markdown/HTML 表格或巢狀結構的朗讀語意尚未以真實講稿人工回歸；前端 `.md` 上傳整合已於 TASK-016 完成，真實 Gemini / 人耳回歸仍留 M8。
 15. **TASK-015 review**
     - 狀態：REVIEW PASS；Critical/Major/Minor 無 findings，acceptance criteria 已有 evidence。
     - durable contract：`frontend/` 已由 create-next-app 建立 App Router + TypeScript scaffold（無 Tailwind）；`frontend/next.config.ts` 將 `/api/:path*` 同路徑 proxy 到 `http://localhost:8000/api/:path*`；`frontend/package.json` 以 npm overrides 固定 `postcss@8.5.15` 並同步 lockfile；已移除 generator nested `frontend/AGENTS.md` / `frontend/CLAUDE.md` 避免 agent instruction drift。
     - 驗證：`npm ci --dry-run`、`npm run lint`、`npx tsc --noEmit`、`git diff --check` 通過；`npm ls postcss` 顯示 `postcss@8.5.15 overridden`，`npm audit --audit-level=low` 回 `found 0 vulnerabilities`；`curl http://localhost:3000/api/health` 經 proxy 回 200 `{"status":"ok"}`；Browser smoke 顯示頁面非空；ports 已清理。
-    - 殘留風險：目前仍是 scaffold/default page；TASK-016 需實作主頁 UI、api-client、AudioPlayer，並回歸文字/.md 輸入到 synthesize/audio playback 的整合流程。
+    - 殘留風險：TASK-016 已完成主頁 UI、api-client、AudioPlayer；下一步由 TASK-017 補 HistoryList 分頁/播放/下載/刪除。
+16. **TASK-016 review**
+    - 狀態：REVIEW PASS；第二輪 Critical/Major/Minor/Suggestion 皆無，Codex app 仲裁 gate pass。
+    - durable contract：`frontend/app/page.tsx`、`frontend/lib/api-client.ts`、`frontend/components/AudioPlayer.tsx` 已完成文字/.md 輸入、voice/style/pacing/accent、inline tag insertion、生成後線上播放與下載，維持 `/api/synthesize` metadata/audio_url 與 `/api/audio/{id}` contract。
+    - 驗證：`cd frontend && npm run lint`、`npx tsc --noEmit`、`npm audit --audit-level=low`（0 vulnerabilities）、`npm ci --dry-run`、`git diff --check` 通過；Playwright fallback smoke 以 mock backend + Next dev 執行實際 click/type/upload/play/download，覆蓋 `title=txt2speech`、tag insertion 產生 `Hello [pause] world.`、text `source=text voice=Zephyr` 且 style/pacing/accent metadata 存在、`.md source=md voice=Puck`、`/api/audio/mock-task-016` 播放/下載與 WAV/attachment headers、desktop/mobile 無水平 overflow；臨時服務/artifacts 已清理，3000/8000 無 listener。
+    - 殘留風險：in-app Browser target 當輪不可用，已由 MCP Playwright fallback 完成 app gate；HistoryList 待 TASK-017；真實 Gemini / 人耳 playback 回歸仍留 M8。
 
 ---
 
@@ -204,7 +211,8 @@
 - [x] **M3**: 切塊與串接（TASK-007/008 pass）
 - [x] **M4**: 持久化與歷史（TASK-009 SQLite metadata、TASK-010 file storage helper、TASK-011 synthesize storage integration、TASK-012 history/delete、TASK-013 audio endpoint 全部完成）
 - [x] **M5**: markdown 正規化（TASK-014 pass）
-- [ ] **M6**: 前端核心（TASK-015 scaffold/proxy 已完成；下一步 TASK-016 主頁 UI + api-client + AudioPlayer）
+- [x] **M6**: 前端核心（TASK-015 scaffold/proxy + TASK-016 主頁 UI/api-client/AudioPlayer 已完成）
+- [ ] **M7**: 前端歷史（下一步 TASK-017 HistoryList 清單：分頁 + 播放/下載/刪除）
 
 ### 最近完成
 
@@ -224,6 +232,7 @@
 - ✅ TASK-013：`GET /api/audio/{id}` 完成 WAV serve、Range 206 與 `?download=1` attachment 下載；未知 id / missing file 回 404。
 - ✅ TASK-014：完成 markdown→plain text normalizer；`POST /api/synthesize source='md'` 會 normalize 後合成並將 DB/metadata `source` 寫為 `md`。
 - ✅ TASK-015：完成 `frontend/` create-next-app scaffold（App Router + TypeScript，無 Tailwind）與 `frontend/next.config.ts` rewrites；`/api/:path*` 經 Next proxy 到 FastAPI :8000，lint/tsc/proxy smoke 與 Browser smoke 通過。
+- ✅ TASK-016：完成主頁 UI、api-client 與 AudioPlayer；文字與 `.md` 上傳可送 synthesize contract，生成結果可線上播放與下載；第二輪 review/app gate 通過。
 
 #### 上週
 - ✅ [完成項目 1]：待補充
@@ -253,7 +262,7 @@
 
 ### 待確認事項
 - [x] plan 已 approved；4 項建議決策（WAV / proxy / Director's Notes / 雙條件切塊）皆採用
-- [ ] 下一步銜接 TASK-016 主頁 UI + api-client + AudioPlayer。
+- [ ] 下一步銜接 TASK-017 HistoryList 清單（limit/offset Load more、播放、下載、刪除）。
 
 ### 討論備註
 [最近討論的重要內容...]
@@ -281,10 +290,11 @@
 | 2026-06-15 | TASK-013 audio Range + download | 通過 | REVIEW PASS；audio API 9 passed、backend 244 passed、compileall、diff check 通過 |
 | 2026-06-15 | TASK-014 markdown normalizer + synthesize source | 通過 | REVIEW PASS；backend 283 passed、targeted 78 passed、compileall、diff check 通過 |
 | 2026-06-15 | TASK-015 frontend scaffold + rewrites proxy | 通過 | REVIEW PASS；Critical/Major/Minor 無 findings；lint、tsc、diff check、proxy curl、Browser smoke 通過 |
+| 2026-06-15 | TASK-016 主頁 UI + api-client + AudioPlayer | 通過 | REVIEW PASS；第二輪 Critical/Major/Minor/Suggestion 無 findings；lint、tsc、audit、npm ci dry-run、diff check、Playwright fallback app gate 通過 |
 
 ### 審查統計
-- 總審查次數：15
-- 通過審查：15
+- 總審查次數：16
+- 通過審查：16
 - 需修復：0
 
 ---

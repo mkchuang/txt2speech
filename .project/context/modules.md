@@ -6,7 +6,7 @@
 
 ## 模組總覽
 
-> 狀態：plan-2026-06-15 已 approved；TASK-001 已落地後端 skeleton/config/health，TASK-002 已落地 `/api/voices`，TASK-003/004 已落地 prompt 組裝器與 Gemini adapter，TASK-005 已落地 PCM→WAV helper，TASK-006 已落地 M2 短稿 `POST /api/synthesize`，TASK-007 已落地雙條件切塊器，TASK-008 已落地 PCM 多塊串接與長稿 synthesize，TASK-009 已落地 SQLite metadata CRUD，TASK-010 已落地音檔安全路徑/寫刪檔，TASK-011 已將 synthesize 接入 DB/file storage 並切回 metadata/audio_url contract，TASK-012 已落地 history 分頁與 delete，TASK-013 已落地 audio Range/下載，TASK-014 已落地 markdown→plain text normalizer 與 synthesize `source='md'` metadata，TASK-015 已落地 frontend scaffold + rewrites proxy；下一步 TASK-016 主頁 UI + api-client + AudioPlayer。
+> 狀態：plan-2026-06-15 已 approved；TASK-001 已落地後端 skeleton/config/health，TASK-002 已落地 `/api/voices`，TASK-003/004 已落地 prompt 組裝器與 Gemini adapter，TASK-005 已落地 PCM→WAV helper，TASK-006 已落地 M2 短稿 `POST /api/synthesize`，TASK-007 已落地雙條件切塊器，TASK-008 已落地 PCM 多塊串接與長稿 synthesize，TASK-009 已落地 SQLite metadata CRUD，TASK-010 已落地音檔安全路徑/寫刪檔，TASK-011 已將 synthesize 接入 DB/file storage 並切回 metadata/audio_url contract，TASK-012 已落地 history 分頁與 delete，TASK-013 已落地 audio Range/下載，TASK-014 已落地 markdown→plain text normalizer 與 synthesize `source='md'` metadata，TASK-015 已落地 frontend scaffold + rewrites proxy，TASK-016 已落地主頁 UI + api-client + AudioPlayer；下一步 TASK-017 HistoryList。
 
 | 模組 | 目錄 | 行為摘要 | 分析深度 | 最後更新 |
 |------|------|---------|---------|---------|
@@ -16,7 +16,7 @@
 | tts | backend/app/tts/ | prompt 組裝器 + Gemini adapter + chunker 已由 `POST /api/synthesize` 整合；長稿 path 使用 prompt overhead token count + 本地 chunk 估算，避免 per-candidate 遠端 `count_tokens` | 🟢 M3 已驗證 | 2026-06-15 |
 | audio | backend/app/audio/ | TASK-005 已提供 24kHz mono 16-bit raw PCM 預設、frame alignment 與 stdlib `wave` WAV 封裝；TASK-008 新增多塊 concat，長稿路由串接後一次封裝 WAV | 🟢 M3 已驗證 | 2026-06-15 |
 | storage | backend/app/storage/ | `db.py` 已提供 `syntheses` SQLite schema（含 source 預設 text）與 create/list/get/delete；`files.py` 已提供 `DATA_DIR/audio/{id}.wav` 安全解析、save/delete；synthesize/history/audio 已接 DB + file storage | 🟢 M4 已驗證 | 2026-06-15 |
-| frontend | frontend/ | Next.js App Router + TypeScript scaffold 已建立；`next.config.ts` 將 `/api/:path*` proxy 到 FastAPI :8000；create-next-app nested agent instructions 已移除，主頁 UI/api-client/AudioPlayer 待 TASK-016 | 🟡 M6 scaffold/proxy 已驗證 | 2026-06-15 |
+| frontend | frontend/ | Next.js App Router + TypeScript scaffold、`/api/:path*` proxy、主頁 UI、api-client、AudioPlayer 已建立；文字/.md 輸入可產生 metadata/audio_url 並播放/下載，HistoryList 待 TASK-017 | 🟢 M6 前端核心已驗證 | 2026-06-15 |
 
 > 分析深度：📋 摘要/規劃 | 🟡 部分實作 | ✅ 已驗證 | 📖 詳細（實作後由 /analyze 或 /update-memory 補）
 
