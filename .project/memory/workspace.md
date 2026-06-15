@@ -54,13 +54,14 @@
 - [x] 任務 3：/adf.breakdown 拆出 18 個 TASK（tasks-2026-06-15-...md）
 - [x] 任務 4：/adf.develop 完成 TASK-001 後端骨架 + config（code review / Codex app 仲裁驗證：REVIEW PASS）
 - [x] 任務 5：完成 TASK-002 `GET /api/voices` 靜態清單（30 種 Gemini TTS voice，review/app gate pass）
-- [ ] 任務 6：下一步依關鍵路徑開 TASK-003/004/005
+- [x] 任務 6：完成 TASK-003 `tts/prompt.py` prompt 組裝器（fixed 3 sections + note/voice sanitizer，review/app gate pass）
+- [ ] 任務 7：下一步依關鍵路徑開 TASK-004 `tts/client.py` Gemini adapter
 
 ### 當前技術挑戰
 1. **TTS 切塊 + PCM 串接品質**（最高風險）
    - 狀態：規劃（排 pytest 必測）
    - 方向：**雙條件切塊**（count_tokens ~7,500 + `MAX_CHUNK_CHARS≈2,500` 可調常數，M3 實測校正）、切點落自然停頓、raw PCM 串接再一次封裝 WAV
-   - ⚠️ 實作約束：token 須以**完整 rendered prompt**（preamble+Director's Notes+TRANSCRIPT）計，勿只算 transcript（否則加 notes 後逼近 8192 上限）
+   - ⚠️ 實作約束：token 須以**完整 rendered prompt**（preamble+Director's Notes+TRANSCRIPT）計，勿只算 transcript；TASK-003 已固定輸出三段並對 voice/style/pacing/accent 做單行 sanitizer，降低 section marker injection 造成的 overhead/邊界漂移
    - 接縫測試（程序化）：Σsample 守恆、frame-alignment 斷言、sine PCM 多塊復原比對；**不**用 sample 差值閾值判接縫（獨立合成語音會 flaky）→ 感知層人耳回歸
 
 2. **語速/語氣控制**（已解除為低風險）
@@ -86,13 +87,13 @@
 
 ## 📊 模組開發狀態
 
-*最後更新：2026-06-15（TASK-002 review pass / update-memory）*
+*最後更新：2026-06-15（TASK-003 review pass / update-memory）*
 
 | 模組 | 功能 | 開發狀態 | 驗證狀態 | 說明 |
 |------|------|----------|----------|------|
 | config | 設定/金鑰 | 🟢 已完成 | 🟢 已驗證 | TASK-001：pydantic-settings 載入 `GEMINI_API_KEY`/`DATA_DIR`/`CORS_ORIGINS` |
 | api | FastAPI app + health/voices；synthesize/history/audio 待續 | 🟡 部分完成 | 🟢 health/voices 已驗證 | TASK-001：`/api/health`；TASK-002：`/api/voices` 回 30 種 Gemini TTS voice |
-| tts | Gemini adapter + 切塊 | ⚫ 未開始 | ⚫ 未驗證 | M2/M3，最高風險 |
+| tts | prompt 組裝器已完成；Gemini adapter + 切塊待續 | 🟡 部分完成 | 🟢 prompt 已驗證 | TASK-003：fixed preamble + Director's Notes + TRANSCRIPT；voice/style/pacing/accent sanitizer 防 section marker injection |
 | audio | PCM→WAV 串接 | ⚫ 未開始 | ⚫ 未驗證 | M2/M3 |
 | storage | SQLite + 檔案系統 | ⚫ 未開始 | ⚫ 未驗證 | M4 |
 | ingest | markdown 正規化 | ⚫ 未開始 | ⚫ 未驗證 | M5 |
@@ -114,6 +115,10 @@
    - 狀態：REVIEW PASS；Critical/Major/Minor/Suggestion 皆無，未發現 out-of-scope diff。
    - 驗證：`python3 -m pytest tests/test_voices.py -v` 通過（7 passed）；`python3 -m compileall -q app tests/test_voices.py`、`git diff --check` 通過；live uvicorn `/api/voices` 回 `count=30 first=Zephyr last=Sulafat`。
    - 殘留風險：前端 dropdown 尚未整合；真實 Gemini TTS 合成屬後續 TASK，不在 TASK-002 範圍。
+3. **TASK-003 review**
+   - 狀態：REVIEW PASS；前一輪 Major（note 欄位可注入 section marker）已修正，最終 Critical/Major/Minor/Suggestion 皆無。
+   - 驗證：`python3 -m pytest backend/tests/ -v` 通過（32 passed）；`python3 -m compileall -q backend/app/tts/prompt.py backend/tests/test_prompt.py` 通過；新增 voice/style/pacing/accent 換行與 `###` marker injection 測試。
+   - 殘留風險：尚未接 Gemini SDK / 真實 TTS 合成；TASK-004 需將 voice 寫入 SDK config，並以 mock 驗證回應健全性與 retry/error mapping。
 
 ---
 
@@ -130,6 +135,7 @@
 #### 本週
 - ✅ TASK-001：後端 FastAPI 骨架、pydantic-settings config、`/api/health`、`.env.example`、package init 完成；`.gitignore` 已改為只忽略 `/data/audio/`，避免 `backend/app/audio` 被忽略。
 - ✅ TASK-002：`GET /api/voices` 回 30 種 Gemini TTS 預建 voice（`name` + `description`），可作前端下拉資料源。
+- ✅ TASK-003：`tts/prompt.py` 組固定 preamble + `### DIRECTOR'S NOTES` + `### TRANSCRIPT`；保留 transcript inline tags，對 voice/style/pacing/accent 做單行 sanitizer。
 
 #### 上週
 - ✅ [完成項目 1]：待補充
@@ -155,7 +161,7 @@
 
 ### 待確認事項
 - [x] plan 已 approved；4 項建議決策（WAV / proxy / Director's Notes / 雙條件切塊）皆採用
-- [ ] TASK-002 已通過 review/app gate/update-memory，進入 commit/push gate；下一步銜接關鍵路徑 TASK-003/004/005
+- [ ] TASK-003 已通過 review/app gate/update-memory，進入 commit/push gate；下一步銜接 TASK-004 `tts/client.py`
 
 ### 討論備註
 [最近討論的重要內容...]
@@ -170,10 +176,11 @@
 |------|------|------|------|
 | 2026-06-15 | TASK-001 後端骨架 + config | 通過 | REVIEW PASS；Critical/Major 無 blocker；acceptance criteria 已有 evidence |
 | 2026-06-15 | TASK-002 `GET /api/voices` | 通過 | REVIEW PASS；Critical/Major/Minor/Suggestion 無；30 筆 Gemini TTS voice 與官方清單相符 |
+| 2026-06-15 | TASK-003 `tts/prompt.py` prompt 組裝器 | 通過 | REVIEW PASS；已修正 note/voice section marker injection；32 backend tests 通過 |
 
 ### 審查統計
-- 總審查次數：2
-- 通過審查：2
+- 總審查次數：3
+- 通過審查：3
 - 需修復：0
 
 ---
