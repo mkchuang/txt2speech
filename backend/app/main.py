@@ -3,6 +3,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.audio import router as audio_router
 from app.api.history import router as history_router
 from app.api.synthesize import router as synthesize_router
 from app.api.voices import router as voices_router
@@ -36,6 +37,7 @@ async def health_check() -> dict[str, str]:
     return {"status": "ok"}
 
 
+app.include_router(audio_router)
 app.include_router(synthesize_router)
 app.include_router(voices_router)
 app.include_router(history_router)
