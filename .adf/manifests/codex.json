@@ -1,0 +1,102 @@
+[
+  {
+    "path": ".agents/skills/adf.analyze/SKILL.md",
+    "sha256": "2ab96b3f83bfde548a2443db67e6228c8df504bd7ac782f57244017f109cd4f1",
+    "installed_at": "2026-06-15T06:59:30.039555Z"
+  },
+  {
+    "path": ".agents/skills/adf.archive-design/SKILL.md",
+    "sha256": "03e56db3b35f0e6600b3f67d69e7724fa3950b98896e521ecd1d1cc239128b8c",
+    "installed_at": "2026-06-15T06:59:30.039555Z"
+  },
+  {
+    "path": ".agents/skills/adf.archive-memory/SKILL.md",
+    "sha256": "33f48b1303b31e57841666c3a3cc0b8d1afcb3b7e9b62c34032ad18bdfb2d889",
+    "installed_at": "2026-06-15T06:59:30.039555Z"
+  },
+  {
+    "path": ".agents/skills/adf.breakdown/SKILL.md",
+    "sha256": "012fab141e206739c3f2da7d469e3b75e8532e4db6be22d7b5553a8742f0a2c4",
+    "installed_at": "2026-06-15T06:59:30.039555Z"
+  },
+  {
+    "path": ".agents/skills/adf.code-review/SKILL.md",
+    "sha256": "a92ef5f038e0ba943e4baa72a4beea3651972225eca96caf78847ebfd2a5a894",
+    "installed_at": "2026-06-15T06:59:30.039555Z"
+  },
+  {
+    "path": ".agents/skills/adf.design/SKILL.md",
+    "sha256": "5d3b2459e1ad2fd1710a404cd4976a98f07f2e9b36835f5aa8d724676971cf77",
+    "installed_at": "2026-06-15T06:59:30.039555Z"
+  },
+  {
+    "path": ".agents/skills/adf.develop/SKILL.md",
+    "sha256": "19376a5a311a52cf4441470eade1c150c2ee2d81ea167d00e2288be7cc7fb87c",
+    "installed_at": "2026-06-15T06:59:30.039555Z"
+  },
+  {
+    "path": ".agents/skills/adf.help/SKILL.md",
+    "sha256": "fe436b8fbf31aac4d2db170567dbc1ad95a31da5050e7b58fbfb50f95e9c4fb4",
+    "installed_at": "2026-06-15T06:59:30.039555Z"
+  },
+  {
+    "path": ".agents/skills/adf.load-memory/SKILL.md",
+    "sha256": "739010ecd5f6f8f64f88814b64626b224916ac649898324de55838da5e24d227",
+    "installed_at": "2026-06-15T06:59:30.039555Z"
+  },
+  {
+    "path": ".agents/skills/adf.planner/SKILL.md",
+    "sha256": "48719d31036c9bffaa6c5e07e9a4bd93b761a04395ec16ee7db24265aecefdf4",
+    "installed_at": "2026-06-15T06:59:30.039555Z"
+  },
+  {
+    "path": ".agents/skills/adf.update-memory/SKILL.md",
+    "sha256": "42a71170b74e42a1bebfa1e67ecd038b4d0940c724e30b0d71d9e28e1f0d08da",
+    "installed_at": "2026-06-15T06:59:30.039555Z"
+  },
+  {
+    "path": ".agents/skills/adf.validate-plan/SKILL.md",
+    "sha256": "d772e77f926f5f0e82adeb65eeb39b3c811324bea3b138759bbfb768f4297a40",
+    "installed_at": "2026-06-15T06:59:30.039555Z"
+  },
+  {
+    "path": ".agents/skills/adf.whoami/SKILL.md",
+    "sha256": "2342fcd823d55731c6a89c9ce82ecd514f5ed4ec9eff629abf82cafe9d9b6c6f",
+    "installed_at": "2026-06-15T06:59:30.039555Z"
+  },
+  {
+    "path": ".codex/agents/analyst.toml",
+    "sha256": "646729bbd99d082cb7692e7c1527bc23bf53e1c7bb1623a4c67238fe22d0560a",
+    "installed_at": "2026-06-15T06:59:30.039555Z"
+  },
+  {
+    "path": ".codex/agents/architect.toml",
+    "sha256": "9577a604edc35bd3aa23810833c18afe4569a5be98d63ee3479aa9bd76684f1b",
+    "installed_at": "2026-06-15T06:59:30.039555Z"
+  },
+  {
+    "path": ".codex/agents/code-reviewer.toml",
+    "sha256": "60d46da874ed0aa153bd75bc95077d67cfdd017e5b8a21b8700c110472bb09b6",
+    "installed_at": "2026-06-15T06:59:30.039555Z"
+  },
+  {
+    "path": ".codex/agents/designer.toml",
+    "sha256": "df0af181f6969c2f4363ab4dbb50840f53c6e0623f856676bdd2a39cce50dc88",
+    "installed_at": "2026-06-15T06:59:30.039555Z"
+  },
+  {
+    "path": ".codex/agents/developer.toml",
+    "sha256": "062afb045dc22f69519304d4190e8cd664fbc534e2825dc543c410e3301355ac",
+    "installed_at": "2026-06-15T06:59:30.039555Z"
+  },
+  {
+    "path": ".codex/agents/plan-reviewer.toml",
+    "sha256": "61af29ae029225d26e8ebd6033e56213a7a13549125bc23a2a45b3b532390856",
+    "installed_at": "2026-06-15T06:59:30.039555Z"
+  },
+  {
+    "path": ".codex/agents/task-planner.toml",
+    "sha256": "20446ca1358385c1146ad23c06d5e3a88f694ce8920450ac365567b4ad65132d",
+    "installed_at": "2026-06-15T06:59:30.039555Z"
+  }
+]

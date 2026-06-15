@@ -1,0 +1,50 @@
+# === 機密與環境變數 ===
+.env
+.env.*
+!.env.example
+
+# === Python 後端 ===
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.Python
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# === Next.js 前端 ===
+node_modules/
+.next/
+out/
+.turbo/
+next-env.d.ts
+*.tsbuildinfo
+.pnp.*
+.yarn/
+
+# === 執行期資料（音檔與歷史 DB，不入版控） ===
+data/
+*.sqlite
+*.sqlite3
+*.db
+audio/
+*.wav
+*.mp3
+*.pcm
+
+# === 編輯器 / OS ===
+.vscode/
+.idea/
+.DS_Store
+*.log
+
+# === 套件管理鎖定（依需求保留；此處不忽略 lockfile） ===

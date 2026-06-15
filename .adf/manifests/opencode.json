@@ -1,0 +1,102 @@
+[
+  {
+    "path": ".opencode/commands/adf.analyze.md",
+    "sha256": "2ab96b3f83bfde548a2443db67e6228c8df504bd7ac782f57244017f109cd4f1",
+    "installed_at": "2026-06-15T06:59:30.053001Z"
+  },
+  {
+    "path": ".opencode/commands/adf.archive-design.md",
+    "sha256": "03e56db3b35f0e6600b3f67d69e7724fa3950b98896e521ecd1d1cc239128b8c",
+    "installed_at": "2026-06-15T06:59:30.053001Z"
+  },
+  {
+    "path": ".opencode/commands/adf.archive-memory.md",
+    "sha256": "33f48b1303b31e57841666c3a3cc0b8d1afcb3b7e9b62c34032ad18bdfb2d889",
+    "installed_at": "2026-06-15T06:59:30.053001Z"
+  },
+  {
+    "path": ".opencode/commands/adf.breakdown.md",
+    "sha256": "012fab141e206739c3f2da7d469e3b75e8532e4db6be22d7b5553a8742f0a2c4",
+    "installed_at": "2026-06-15T06:59:30.053001Z"
+  },
+  {
+    "path": ".opencode/commands/adf.code-review.md",
+    "sha256": "a92ef5f038e0ba943e4baa72a4beea3651972225eca96caf78847ebfd2a5a894",
+    "installed_at": "2026-06-15T06:59:30.053001Z"
+  },
+  {
+    "path": ".opencode/commands/adf.design.md",
+    "sha256": "5d3b2459e1ad2fd1710a404cd4976a98f07f2e9b36835f5aa8d724676971cf77",
+    "installed_at": "2026-06-15T06:59:30.053001Z"
+  },
+  {
+    "path": ".opencode/commands/adf.develop.md",
+    "sha256": "19376a5a311a52cf4441470eade1c150c2ee2d81ea167d00e2288be7cc7fb87c",
+    "installed_at": "2026-06-15T06:59:30.053001Z"
+  },
+  {
+    "path": ".opencode/commands/adf.help.md",
+    "sha256": "fe436b8fbf31aac4d2db170567dbc1ad95a31da5050e7b58fbfb50f95e9c4fb4",
+    "installed_at": "2026-06-15T06:59:30.053001Z"
+  },
+  {
+    "path": ".opencode/commands/adf.load-memory.md",
+    "sha256": "739010ecd5f6f8f64f88814b64626b224916ac649898324de55838da5e24d227",
+    "installed_at": "2026-06-15T06:59:30.053001Z"
+  },
+  {
+    "path": ".opencode/commands/adf.planner.md",
+    "sha256": "48719d31036c9bffaa6c5e07e9a4bd93b761a04395ec16ee7db24265aecefdf4",
+    "installed_at": "2026-06-15T06:59:30.053001Z"
+  },
+  {
+    "path": ".opencode/commands/adf.update-memory.md",
+    "sha256": "42a71170b74e42a1bebfa1e67ecd038b4d0940c724e30b0d71d9e28e1f0d08da",
+    "installed_at": "2026-06-15T06:59:30.053001Z"
+  },
+  {
+    "path": ".opencode/commands/adf.validate-plan.md",
+    "sha256": "d772e77f926f5f0e82adeb65eeb39b3c811324bea3b138759bbfb768f4297a40",
+    "installed_at": "2026-06-15T06:59:30.053001Z"
+  },
+  {
+    "path": ".opencode/commands/adf.whoami.md",
+    "sha256": "2342fcd823d55731c6a89c9ce82ecd514f5ed4ec9eff629abf82cafe9d9b6c6f",
+    "installed_at": "2026-06-15T06:59:30.053001Z"
+  },
+  {
+    "path": ".opencode/agents/analyst.md",
+    "sha256": "d6e019583feda1fc86725e0c0825b9dfc6703b95ab10dff73d53dd078598a208",
+    "installed_at": "2026-06-15T06:59:30.053001Z"
+  },
+  {
+    "path": ".opencode/agents/architect.md",
+    "sha256": "28712540af8bb989c38e71219b61f4b487ce8f70c6d2a2e18dd7333020d6c41b",
+    "installed_at": "2026-06-15T06:59:30.053001Z"
+  },
+  {
+    "path": ".opencode/agents/code-reviewer.md",
+    "sha256": "2856dfa137d50ab202c5a2b286633d6d5ea3fc9d513392fb8fc7fdfcabdb4e1b",
+    "installed_at": "2026-06-15T06:59:30.053001Z"
+  },
+  {
+    "path": ".opencode/agents/designer.md",
+    "sha256": "8cc9b19d27a5da2f18c63b3476543e85f125ca5720f288ee6f744a7ff09d2215",
+    "installed_at": "2026-06-15T06:59:30.053001Z"
+  },
+  {
+    "path": ".opencode/agents/developer.md",
+    "sha256": "79908d43ce73a9ac9b62e6a292a6f2e419b3f47a4e7bc24236a689059c24466a",
+    "installed_at": "2026-06-15T06:59:30.053001Z"
+  },
+  {
+    "path": ".opencode/agents/plan-reviewer.md",
+    "sha256": "6a48e4056191b4b00d55a871603ecb7a425af6e5f3008b31f828613433502671",
+    "installed_at": "2026-06-15T06:59:30.053001Z"
+  },
+  {
+    "path": ".opencode/agents/task-planner.md",
+    "sha256": "5bf0bcfdfd14f8c63acbe38655fe90dd7e9b02e92a7aaab8cea2e419fa4b2aa9",
+    "installed_at": "2026-06-15T06:59:30.053001Z"
+  }
+]

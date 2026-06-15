@@ -1,0 +1,102 @@
+[
+  {
+    "path": ".claude/commands/adf.analyze.md",
+    "sha256": "035ed96e0894ecdde4ae8aa5c9eab6a345df7a0505ac984750e3d76ef7ba0117",
+    "installed_at": "2026-06-15T06:59:30.026363Z"
+  },
+  {
+    "path": ".claude/commands/adf.archive-design.md",
+    "sha256": "902295b0917f361cfd9d1869595b58cf23d9b5d364cf3919d89e2b5d36f90d53",
+    "installed_at": "2026-06-15T06:59:30.026363Z"
+  },
+  {
+    "path": ".claude/commands/adf.archive-memory.md",
+    "sha256": "8ea948e4d57a55836e65b3966462799b0c38ee804de38ff06884bbb8902dc0a5",
+    "installed_at": "2026-06-15T06:59:30.026363Z"
+  },
+  {
+    "path": ".claude/commands/adf.breakdown.md",
+    "sha256": "fa5d6dd015e81b424dd483314204cc33a939e3d532246a24629238902393dae3",
+    "installed_at": "2026-06-15T06:59:30.026363Z"
+  },
+  {
+    "path": ".claude/commands/adf.code-review.md",
+    "sha256": "773a07fbeb9cd7a0af882fddb0b8645d03124729912de782feed904804531ddd",
+    "installed_at": "2026-06-15T06:59:30.026363Z"
+  },
+  {
+    "path": ".claude/commands/adf.design.md",
+    "sha256": "b16677d17c3fc685b6f3985a2ac8464bbfd6181b9231e622798ce873571ce207",
+    "installed_at": "2026-06-15T06:59:30.026363Z"
+  },
+  {
+    "path": ".claude/commands/adf.develop.md",
+    "sha256": "ac9157998af42a37baa58c85647619e132f5c13e5e7131acf4b0c01e2a4b284c",
+    "installed_at": "2026-06-15T06:59:30.026363Z"
+  },
+  {
+    "path": ".claude/commands/adf.help.md",
+    "sha256": "85ae747df19bd92f733e25c430ed9e2348c1b0691ed3d6892b542cdb7cd8ec58",
+    "installed_at": "2026-06-15T06:59:30.026363Z"
+  },
+  {
+    "path": ".claude/commands/adf.load-memory.md",
+    "sha256": "948d575914d47b7f22bdcfb688abb13a53cb9c6286df0cbcbf2f4ff53599d4d6",
+    "installed_at": "2026-06-15T06:59:30.026363Z"
+  },
+  {
+    "path": ".claude/commands/adf.planner.md",
+    "sha256": "36a6fed9e2121928940b34120a4097c53306a71d9ab621a442033e4324f495a8",
+    "installed_at": "2026-06-15T06:59:30.026363Z"
+  },
+  {
+    "path": ".claude/commands/adf.update-memory.md",
+    "sha256": "cc7040c8589fe002b42b2fd0ae7d85fa80a1657f8858b152a2d339a7b92817a7",
+    "installed_at": "2026-06-15T06:59:30.026363Z"
+  },
+  {
+    "path": ".claude/commands/adf.validate-plan.md",
+    "sha256": "6ed49fe1232306d4699d1df3efbf49d69c4511e12947119a273671f2bf58fae0",
+    "installed_at": "2026-06-15T06:59:30.026363Z"
+  },
+  {
+    "path": ".claude/commands/adf.whoami.md",
+    "sha256": "a8d5b79fa5d17374ef9db71bf56df2cbb126b5f52b0061d2c41eb0acaafe8c0f",
+    "installed_at": "2026-06-15T06:59:30.026363Z"
+  },
+  {
+    "path": ".claude/agents/analyst.md",
+    "sha256": "62fe48a39231fc816aae7046df02a1376f7ba3c6a6e154646a6f2252b8cc613b",
+    "installed_at": "2026-06-15T06:59:30.026363Z"
+  },
+  {
+    "path": ".claude/agents/architect.md",
+    "sha256": "506af7bc425ff14dcda2f80a19d46c676634064a2894f516748e52292af2596d",
+    "installed_at": "2026-06-15T06:59:30.026363Z"
+  },
+  {
+    "path": ".claude/agents/code-reviewer.md",
+    "sha256": "58e423b465340d790241ef5243f7f47b305fde5a166cc1d5b304a15e16a70513",
+    "installed_at": "2026-06-15T06:59:30.026363Z"
+  },
+  {
+    "path": ".claude/agents/designer.md",
+    "sha256": "d51804bd1bcec0a14c4e311b6f2219b4aa69e8f64098fea30529ea65f08a2431",
+    "installed_at": "2026-06-15T06:59:30.026363Z"
+  },
+  {
+    "path": ".claude/agents/developer.md",
+    "sha256": "9a1593d2db27996e4535ab5ffc734947afff6f8a6a210e05775b57ffd43a2136",
+    "installed_at": "2026-06-15T06:59:30.026363Z"
+  },
+  {
+    "path": ".claude/agents/plan-reviewer.md",
+    "sha256": "24be235f20bf701bf5915e5d0ba8fdfbdff98e367cac9afa89ccb10487c2e861",
+    "installed_at": "2026-06-15T06:59:30.026363Z"
+  },
+  {
+    "path": ".claude/agents/task-planner.md",
+    "sha256": "35d4556e8ef671c2403e5b4bff6a2756020265def275c482c7df08821bd23b2d",
+    "installed_at": "2026-06-15T06:59:30.026363Z"
+  }
+]
