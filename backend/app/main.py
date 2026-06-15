@@ -3,6 +3,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.voices import router as voices_router
 from app.config import settings
 
 logging.basicConfig(
@@ -31,3 +32,6 @@ app.add_middleware(
 @app.get("/api/health")
 async def health_check() -> dict[str, str]:
     return {"status": "ok"}
+
+
+app.include_router(voices_router)

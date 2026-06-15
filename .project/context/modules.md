@@ -6,12 +6,12 @@
 
 ## 模組總覽
 
-> 狀態：plan-2026-06-15 已 approved；TASK-001 已落地後端 skeleton/config/health，其他模組仍依 task backlog 推進。
+> 狀態：plan-2026-06-15 已 approved；TASK-001 已落地後端 skeleton/config/health，TASK-002 已落地 `/api/voices`，其他模組仍依 task backlog 推進。
 
 | 模組 | 目錄 | 行為摘要 | 分析深度 | 最後更新 |
 |------|------|---------|---------|---------|
 | config | backend/app/config.py | 載入 GEMINI_API_KEY / DATA_DIR / CORS 設定；缺 key 啟動 gate 已驗證 | ✅ 已驗證 | 2026-06-15 |
-| api | backend/app/api/ | FastAPI app + /api/health 已實作；synthesize / history / audio / voices 路由待續 | 🟡 部分實作 | 2026-06-15 |
+| api | backend/app/api/ | FastAPI app + /api/health、/api/voices 已實作且驗證；synthesize / history / audio 路由待續 | 🟡 部分實作 | 2026-06-15 |
 | ingest | backend/app/ingest/ | markdown→純文字正規化 | 📋 規劃 | 2026-06-15 |
 | tts | backend/app/tts/ | Gemini adapter、prompt 組裝(Director's Notes+inline tags)、count_tokens 切塊 | 📋 規劃 | 2026-06-15 |
 | audio | backend/app/audio/ | 多塊 raw PCM 串接 → WAV（stdlib wave） | 📋 規劃 | 2026-06-15 |

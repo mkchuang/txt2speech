@@ -53,7 +53,8 @@
 - [x] 任務 2：/adf.planner 產出 whole-project plan（已 approved）
 - [x] 任務 3：/adf.breakdown 拆出 18 個 TASK（tasks-2026-06-15-...md）
 - [x] 任務 4：/adf.develop 完成 TASK-001 後端骨架 + config（code review / Codex app 仲裁驗證：REVIEW PASS）
-- [ ] 任務 5：下一步依關鍵路徑開 TASK-003/004/005；TASK-002 voices 可並行補齊 M1
+- [x] 任務 5：完成 TASK-002 `GET /api/voices` 靜態清單（30 種 Gemini TTS voice，review/app gate pass）
+- [ ] 任務 6：下一步依關鍵路徑開 TASK-003/004/005
 
 ### 當前技術挑戰
 1. **TTS 切塊 + PCM 串接品質**（最高風險）
@@ -71,7 +72,7 @@
    - 方向：tts/ adapter 為唯一 AI 邊界，隔離 API 變動
 
 ### 短期目標（本月）
-- 目標 1：完成 M1（TASK-001 已 pass；TASK-002 voices 待做）
+- 目標 1：完成 M1（TASK-001 + TASK-002 已 pass）
 - 目標 2：完成 M1–M4（後端骨架 + 合成 + 切塊串接 + 持久化/歷史）
 
 ### 待解決問題
@@ -85,12 +86,12 @@
 
 ## 📊 模組開發狀態
 
-*最後更新：2026-06-15（TASK-001 review pass / update-memory）*
+*最後更新：2026-06-15（TASK-002 review pass / update-memory）*
 
 | 模組 | 功能 | 開發狀態 | 驗證狀態 | 說明 |
 |------|------|----------|----------|------|
 | config | 設定/金鑰 | 🟢 已完成 | 🟢 已驗證 | TASK-001：pydantic-settings 載入 `GEMINI_API_KEY`/`DATA_DIR`/`CORS_ORIGINS` |
-| api | FastAPI app + health；synthesize/history/audio/voices 待續 | 🟡 部分完成 | 🟢 health 已驗證 | TASK-001：`/api/health`；其餘路由待後續 TASK |
+| api | FastAPI app + health/voices；synthesize/history/audio 待續 | 🟡 部分完成 | 🟢 health/voices 已驗證 | TASK-001：`/api/health`；TASK-002：`/api/voices` 回 30 種 Gemini TTS voice |
 | tts | Gemini adapter + 切塊 | ⚫ 未開始 | ⚫ 未驗證 | M2/M3，最高風險 |
 | audio | PCM→WAV 串接 | ⚫ 未開始 | ⚫ 未驗證 | M2/M3 |
 | storage | SQLite + 檔案系統 | ⚫ 未開始 | ⚫ 未驗證 | M4 |
@@ -109,13 +110,17 @@
    - 狀態：REVIEW PASS；Critical/Major 無 blocker，acceptance criteria 已有 evidence。
    - 驗證：缺 `GEMINI_API_KEY` 會報 `Field required`；假 key 可啟動 uvicorn；`/api/health` 回 200 `{"status":"ok"}`；`python3 -m compileall -q app` 與 `git diff --check` 通過。
    - 殘留風險：尚未觸及 Gemini adapter、voices、synthesize/history/audio/storage；後續高風險仍是 TASK-004、TASK-007、TASK-008。
+2. **TASK-002 review**
+   - 狀態：REVIEW PASS；Critical/Major/Minor/Suggestion 皆無，未發現 out-of-scope diff。
+   - 驗證：`python3 -m pytest tests/test_voices.py -v` 通過（7 passed）；`python3 -m compileall -q app tests/test_voices.py`、`git diff --check` 通過；live uvicorn `/api/voices` 回 `count=30 first=Zephyr last=Sulafat`。
+   - 殘留風險：前端 dropdown 尚未整合；真實 Gemini TTS 合成屬後續 TASK，不在 TASK-002 範圍。
 
 ---
 
 ## 📈 進度追蹤
 
 ### 專案里程碑
-- [ ] **M1**: 後端骨架（TASK-001 pass；TASK-002 voices 待做）
+- [x] **M1**: 後端骨架（TASK-001 health/config + TASK-002 voices pass）
 - [ ] **M2**: 核心功能開發
 - [ ] **M3**: 測試和優化
 - [ ] **M4**: 部署上線
@@ -124,6 +129,7 @@
 
 #### 本週
 - ✅ TASK-001：後端 FastAPI 骨架、pydantic-settings config、`/api/health`、`.env.example`、package init 完成；`.gitignore` 已改為只忽略 `/data/audio/`，避免 `backend/app/audio` 被忽略。
+- ✅ TASK-002：`GET /api/voices` 回 30 種 Gemini TTS 預建 voice（`name` + `description`），可作前端下拉資料源。
 
 #### 上週
 - ✅ [完成項目 1]：待補充
@@ -149,7 +155,7 @@
 
 ### 待確認事項
 - [x] plan 已 approved；4 項建議決策（WAV / proxy / Director's Notes / 雙條件切塊）皆採用
-- [ ] TASK-001 已通過 review/update-memory，進入 commit/push gate；下一步銜接 TASK-002 或關鍵路徑 TASK-003/004/005
+- [ ] TASK-002 已通過 review/app gate/update-memory，進入 commit/push gate；下一步銜接關鍵路徑 TASK-003/004/005
 
 ### 討論備註
 [最近討論的重要內容...]
@@ -163,10 +169,11 @@
 | 日期 | 範圍 | 結果 | 說明 |
 |------|------|------|------|
 | 2026-06-15 | TASK-001 後端骨架 + config | 通過 | REVIEW PASS；Critical/Major 無 blocker；acceptance criteria 已有 evidence |
+| 2026-06-15 | TASK-002 `GET /api/voices` | 通過 | REVIEW PASS；Critical/Major/Minor/Suggestion 無；30 筆 Gemini TTS voice 與官方清單相符 |
 
 ### 審查統計
-- 總審查次數：1
-- 通過審查：1
+- 總審查次數：2
+- 通過審查：2
 - 需修復：0
 
 ---
