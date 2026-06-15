@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import AudioPlayer from "@/components/AudioPlayer";
+import HistoryList from "@/components/HistoryList";
 import {
   fetchVoices,
   synthesizeSpeech,
@@ -34,6 +35,7 @@ export default function Home() {
   const [synthesizing, setSynthesizing] = useState(false);
   const [synthesizeError, setSynthesizeError] = useState<string | null>(null);
   const [result, setResult] = useState<SynthesizeSuccessResponse | null>(null);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -130,6 +132,7 @@ export default function Home() {
         source,
       });
       setResult(response);
+      setHistoryRefreshKey((k) => k + 1);
     } catch (err: unknown) {
       setSynthesizeError(
         err instanceof Error ? err.message : "Synthesis failed",
@@ -350,6 +353,8 @@ export default function Home() {
             </div>
           </section>
         )}
+
+        <HistoryList refreshKey={historyRefreshKey} />
       </main>
     </div>
   );

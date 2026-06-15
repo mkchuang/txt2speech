@@ -74,3 +74,51 @@ export async function synthesizeSpeech(
 export function audioDownloadUrl(audioUrl: string): string {
   return `${audioUrl}?download=true`;
 }
+
+export interface HistoryItem {
+  id: string;
+  created_at: string;
+  text_excerpt: string;
+  char_count: number;
+  source: string;
+  voice: string;
+  pacing: string | null;
+  style: string | null;
+  accent: string | null;
+  format: string;
+  duration_ms: number | null;
+  status: string;
+  audio_url: string;
+}
+
+export interface HistoryListResponse {
+  items: HistoryItem[];
+  total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
+}
+
+export async function fetchHistory(
+  limit: number = 50,
+  offset: number = 0,
+): Promise<HistoryListResponse> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+  const res = await fetch(`/api/history?${params}`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch history: ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function deleteHistoryItem(id: string): Promise<void> {
+  const res = await fetch(`/api/history/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to delete history item: ${res.status} ${res.statusText}`);
+  }
+}
