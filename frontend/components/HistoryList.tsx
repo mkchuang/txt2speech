@@ -7,6 +7,7 @@ import {
   fetchHistory,
   type HistoryItem,
 } from "@/lib/api-client";
+import { formatVoiceSummary } from "@/lib/voice-profiles";
 import styles from "@/app/page.module.css";
 
 const PAGE_LIMIT = 50;
@@ -41,7 +42,7 @@ export default function HistoryList({ refreshKey }: HistoryListProps) {
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load history");
+          setError(err instanceof Error ? err.message : "無法載入歷史紀錄");
           setLastLoadedKey(refreshKey);
         }
       });
@@ -63,14 +64,14 @@ export default function HistoryList({ refreshKey }: HistoryListProps) {
       setTotal(data.total);
       setHasMore(data.has_more);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load more items");
+      setError(err instanceof Error ? err.message : "無法載入更多紀錄");
     } finally {
       setLoadingMore(false);
     }
   }, [items.length, loadingMore]);
 
   const handleDelete = useCallback(async (id: string) => {
-    if (!window.confirm("Delete this history item?")) return;
+    if (!window.confirm("確定要刪除這筆歷史紀錄嗎？")) return;
 
     setDeletingId(id);
     try {
@@ -78,7 +79,7 @@ export default function HistoryList({ refreshKey }: HistoryListProps) {
       setItems((prev) => prev.filter((item) => item.id !== id));
       setTotal((prev) => prev - 1);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to delete item");
+      setError(err instanceof Error ? err.message : "無法刪除紀錄");
     } finally {
       setDeletingId(null);
     }
@@ -87,8 +88,8 @@ export default function HistoryList({ refreshKey }: HistoryListProps) {
   if (loading) {
     return (
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>History</h2>
-        <p className={styles.hint}>Loading history...</p>
+        <h2 className={styles.sectionTitle}>歷史紀錄</h2>
+        <p className={styles.hint}>載入歷史紀錄中...</p>
       </section>
     );
   }
@@ -96,7 +97,7 @@ export default function HistoryList({ refreshKey }: HistoryListProps) {
   if (error && items.length === 0) {
     return (
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>History</h2>
+        <h2 className={styles.sectionTitle}>歷史紀錄</h2>
         <p className={styles.errorText}>{error}</p>
       </section>
     );
@@ -105,8 +106,8 @@ export default function HistoryList({ refreshKey }: HistoryListProps) {
   if (items.length === 0) {
     return (
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>History</h2>
-        <p className={styles.hint}>No history yet. Generate some speech to see it here.</p>
+        <h2 className={styles.sectionTitle}>歷史紀錄</h2>
+        <p className={styles.hint}>還沒有歷史紀錄，生成語音後會顯示在這裡。</p>
       </section>
     );
   }
@@ -114,7 +115,7 @@ export default function HistoryList({ refreshKey }: HistoryListProps) {
   return (
     <section className={styles.section}>
       <h2 className={styles.sectionTitle}>
-        History{total > 0 ? ` (${items.length} of ${total})` : ""}
+        歷史紀錄{total > 0 ? `（已顯示 ${items.length} / 共 ${total}）` : ""}
       </h2>
 
       {error && <p className={styles.errorText}>{error}</p>}
@@ -127,13 +128,17 @@ export default function HistoryList({ refreshKey }: HistoryListProps) {
             <div key={item.id} className={styles.historyItem}>
               <div className={styles.historyItemHead}>
                 <div className={styles.historyItemTitle}>
-                  <span className={styles.historyItemVoice}>{item.voice}</span>
+                  <span className={styles.historyItemVoice}>
+                    {formatVoiceSummary(item.voice)}
+                  </span>
                   {!isCompleted && (
-                    <span className={styles.historyStatus}>{item.status}</span>
+                    <span className={styles.historyStatus}>
+                      {item.status === "error" ? "失敗" : item.status}
+                    </span>
                   )}
                 </div>
                 <span className={styles.historyItemDate}>
-                  {new Date(item.created_at).toLocaleString()}
+                  {new Date(item.created_at).toLocaleString("zh-TW")}
                 </span>
               </div>
 
@@ -147,7 +152,7 @@ export default function HistoryList({ refreshKey }: HistoryListProps) {
                   className={styles.historyAudio}
                 />
               ) : (
-                <p className={styles.historyUnavailable}>Audio unavailable</p>
+                <p className={styles.historyUnavailable}>音檔無法播放</p>
               )}
 
               <div className={styles.historyItemActions}>
@@ -157,7 +162,7 @@ export default function HistoryList({ refreshKey }: HistoryListProps) {
                     download
                     className={styles.historyActionBtn}
                   >
-                    Download
+                    下載
                   </a>
                 )}
                 <button
@@ -166,7 +171,7 @@ export default function HistoryList({ refreshKey }: HistoryListProps) {
                   disabled={deletingId === item.id}
                   onClick={() => handleDelete(item.id)}
                 >
-                  {deletingId === item.id ? "Deleting..." : "Delete"}
+                  {deletingId === item.id ? "刪除中..." : "刪除"}
                 </button>
               </div>
             </div>
@@ -181,7 +186,7 @@ export default function HistoryList({ refreshKey }: HistoryListProps) {
           disabled={loadingMore}
           onClick={handleLoadMore}
         >
-          {loadingMore ? "Loading..." : "Load more"}
+          {loadingMore ? "載入中..." : "載入更多"}
         </button>
       )}
     </section>

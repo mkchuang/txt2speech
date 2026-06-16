@@ -43,7 +43,7 @@ export interface SynthesizeErrorResponse {
 export async function fetchVoices(): Promise<VoicesResponse> {
   const res = await fetch("/api/voices");
   if (!res.ok) {
-    throw new Error(`Failed to fetch voices: ${res.status} ${res.statusText}`);
+    throw new Error(`無法載入音色清單：${res.status} ${res.statusText}`);
   }
   return res.json();
 }
@@ -58,7 +58,7 @@ export async function synthesizeSpeech(
   });
 
   if (!res.ok) {
-    let detail = `Synthesis failed: ${res.status} ${res.statusText}`;
+    let detail = `語音合成失敗：${res.status} ${res.statusText}`;
     try {
       const errBody: SynthesizeErrorResponse = await res.json();
       detail = errBody.detail || detail;
@@ -109,7 +109,7 @@ export async function fetchHistory(
   });
   const res = await fetch(`/api/history?${params}`);
   if (!res.ok) {
-    throw new Error(`Failed to fetch history: ${res.status} ${res.statusText}`);
+    throw new Error(`無法載入歷史紀錄：${res.status} ${res.statusText}`);
   }
   return res.json();
 }
@@ -119,6 +119,6 @@ export async function deleteHistoryItem(id: string): Promise<void> {
     method: "DELETE",
   });
   if (!res.ok) {
-    throw new Error(`Failed to delete history item: ${res.status} ${res.statusText}`);
+    throw new Error(`無法刪除歷史紀錄：${res.status} ${res.statusText}`);
   }
 }

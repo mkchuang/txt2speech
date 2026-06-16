@@ -9,15 +9,20 @@ import {
   type SynthesizeSuccessResponse,
   type Voice,
 } from "@/lib/api-client";
+import {
+  formatVoiceOptionLabel,
+  getVoiceDescriptionZh,
+  getVoiceProfile,
+} from "@/lib/voice-profiles";
 import styles from "./page.module.css";
 
 const TAG_PRESETS = [
-  { label: "Slowly", tag: "[slowly] " },
-  { label: "Emphasize", tag: "[emphasis] " },
-  { label: "Pause", tag: "[pause] " },
-  { label: "Excited", tag: "[excited] " },
-  { label: "Very Slow", tag: "[very slow] " },
-  { label: "Whisper", tag: "[whisper] " },
+  { label: "慢速", tag: "[slowly] " },
+  { label: "強調", tag: "[emphasis] " },
+  { label: "停頓", tag: "[pause] " },
+  { label: "興奮", tag: "[excited] " },
+  { label: "很慢", tag: "[very slow] " },
+  { label: "耳語", tag: "[whisper] " },
 ];
 
 export default function Home() {
@@ -53,7 +58,7 @@ export default function Home() {
       .catch((err: unknown) => {
         if (!cancelled) {
           setVoicesError(
-            err instanceof Error ? err.message : "Failed to load voices",
+            err instanceof Error ? err.message : "無法載入音色清單",
           );
         }
       })
@@ -101,7 +106,7 @@ export default function Home() {
         setSynthesizeError(null);
       };
       reader.onerror = () => {
-        setSynthesizeError("Failed to read file");
+        setSynthesizeError("無法讀取檔案");
       };
       reader.readAsText(file);
     },
@@ -110,11 +115,11 @@ export default function Home() {
 
   const handleGenerate = useCallback(async () => {
     if (!text.trim()) {
-      setSynthesizeError("Please enter some text.");
+      setSynthesizeError("請先輸入講稿內容。");
       return;
     }
     if (!voice) {
-      setSynthesizeError("Please select a voice.");
+      setSynthesizeError("請先選擇音色。");
       return;
     }
 
@@ -135,7 +140,7 @@ export default function Home() {
       setHistoryRefreshKey((k) => k + 1);
     } catch (err: unknown) {
       setSynthesizeError(
-        err instanceof Error ? err.message : "Synthesis failed",
+        err instanceof Error ? err.message : "語音合成失敗",
       );
     } finally {
       setSynthesizing(false);
@@ -149,47 +154,68 @@ export default function Home() {
     }
   }, []);
 
+  const selectedVoice = voices.find((v) => v.name === voice);
+  const selectedVoiceProfile = selectedVoice
+    ? getVoiceProfile(selectedVoice.name)
+    : undefined;
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
         <h1 className={styles.title}>txt2speech</h1>
-        <p className={styles.subtitle}>Speech Practice Tool</p>
+        <p className={styles.subtitle}>演講練習 TTS 工具</p>
       </header>
 
       <main className={styles.main}>
         <section className={styles.section}>
           <label htmlFor="voice-select" className={styles.label}>
-            Voice
+            音色
           </label>
           {voicesLoading && (
-            <p className={styles.hint}>Loading voices...</p>
+            <p className={styles.hint}>載入音色中...</p>
           )}
           {voicesError && (
             <p className={styles.errorText}>{voicesError}</p>
           )}
           {!voicesLoading && !voicesError && voices.length === 0 && (
-            <p className={styles.hint}>No voices available.</p>
+            <p className={styles.hint}>目前沒有可用音色。</p>
           )}
           {!voicesLoading && voices.length > 0 && (
-            <select
-              id="voice-select"
-              className={styles.select}
-              value={voice}
-              onChange={(e) => setVoice(e.target.value)}
-            >
-              {voices.map((v) => (
-                <option key={v.name} value={v.name}>
-                  {v.name} - {v.description}
-                </option>
-              ))}
-            </select>
+            <>
+              <select
+                id="voice-select"
+                className={styles.select}
+                value={voice}
+                onChange={(e) => setVoice(e.target.value)}
+              >
+                {voices.map((v) => (
+                  <option key={v.name} value={v.name}>
+                    {formatVoiceOptionLabel(v)}
+                  </option>
+                ))}
+              </select>
+
+              {selectedVoice && selectedVoiceProfile && (
+                <div className={styles.voiceDetail}>
+                  <div className={styles.voiceTags}>
+                    <span className={styles.voiceTag}>{selectedVoiceProfile.gender}</span>
+                    <span className={styles.voiceTag}>{selectedVoiceProfile.pitch}</span>
+                    <span className={styles.voiceTag}>{selectedVoiceProfile.tone}</span>
+                    <span className={styles.voiceTag}>
+                      官方特徵：{getVoiceDescriptionZh(selectedVoice)}
+                    </span>
+                  </div>
+                  <p className={styles.voiceHint}>{selectedVoiceProfile.character}</p>
+                </div>
+              )}
+            </>
           )}
         </section>
 
         <section className={styles.section}>
           <div className={styles.rowBetween}>
             <label htmlFor="text-input" className={styles.label}>
-              Speech Text
+              講稿內容
             </label>
             <div className={styles.sourceRow}>
               {source === "md" && (
@@ -199,14 +225,14 @@ export default function Home() {
                     type="button"
                     className={styles.clearSourceBtn}
                     onClick={resetSource}
-                    aria-label="Clear .md source"
+                    aria-label="清除 .md 來源"
                   >
                     x
                   </button>
                 </span>
               )}
               <label className={styles.fileUploadLabel}>
-                Upload .md
+                上傳 .md
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -236,50 +262,50 @@ export default function Home() {
             id="text-input"
             className={styles.textarea}
             rows={10}
-            placeholder="Paste or type your speech text here..."
+            placeholder="貼上或輸入你的演講稿..."
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
         </section>
 
         <section className={styles.section}>
-          <p className={styles.label}>Director&apos;s Notes</p>
+          <p className={styles.label}>朗讀提示</p>
           <div className={styles.notesGrid}>
             <div className={styles.noteField}>
               <label htmlFor="style-input" className={styles.sublabel}>
-                Style
+                風格
               </label>
               <input
                 id="style-input"
                 className={styles.textInput}
                 type="text"
-                placeholder="e.g. news anchor, storyteller"
+                placeholder="例如：新聞主播、說故事"
                 value={style}
                 onChange={(e) => setStyle(e.target.value)}
               />
             </div>
             <div className={styles.noteField}>
               <label htmlFor="pacing-input" className={styles.sublabel}>
-                Pacing
+                語速
               </label>
               <input
                 id="pacing-input"
                 className={styles.textInput}
                 type="text"
-                placeholder="e.g. slow and clear, moderate"
+                placeholder="例如：慢而清楚、中速"
                 value={pacing}
                 onChange={(e) => setPacing(e.target.value)}
               />
             </div>
             <div className={styles.noteField}>
               <label htmlFor="accent-input" className={styles.sublabel}>
-                Accent
+                口音
               </label>
               <input
                 id="accent-input"
                 className={styles.textInput}
                 type="text"
-                placeholder="e.g. American, British"
+                placeholder="例如：美式、英式"
                 value={accent}
                 onChange={(e) => setAccent(e.target.value)}
               />
@@ -294,12 +320,12 @@ export default function Home() {
             disabled={synthesizing || text.trim().length === 0 || !voice}
             onClick={handleGenerate}
           >
-            {synthesizing ? "Generating..." : "Generate Speech"}
+            {synthesizing ? "生成中..." : "生成語音"}
           </button>
 
           {synthesizing && (
             <p className={styles.hint}>
-              Synthesizing speech... this may take a moment.
+              正在合成語音，可能需要一點時間。
             </p>
           )}
           {synthesizeError && (
@@ -309,44 +335,44 @@ export default function Home() {
 
         {result && (
           <section className={styles.section}>
-            <h2 className={styles.sectionTitle}>Result</h2>
+            <h2 className={styles.sectionTitle}>生成結果</h2>
             <AudioPlayer audioUrl={result.audio_url} />
 
             <div className={styles.metadata}>
-              <p className={styles.metaLabel}>Metadata</p>
+              <p className={styles.metaLabel}>合成資訊</p>
               <ul className={styles.metaList}>
                 <li>
                   <strong>ID:</strong> {result.id}
                 </li>
                 <li>
-                  <strong>Created:</strong>{" "}
-                  {new Date(result.created_at).toLocaleString()}
+                  <strong>建立時間：</strong>{" "}
+                  {new Date(result.created_at).toLocaleString("zh-TW")}
                 </li>
                 <li>
-                  <strong>Excerpt:</strong> {result.metadata.text_excerpt}
+                  <strong>摘要：</strong> {result.metadata.text_excerpt}
                 </li>
                 <li>
-                  <strong>Characters:</strong> {result.metadata.char_count}
+                  <strong>字數：</strong> {result.metadata.char_count}
                 </li>
                 <li>
-                  <strong>Source:</strong> {result.metadata.source}
+                  <strong>來源：</strong> {result.metadata.source === "md" ? ".md" : "文字"}
                 </li>
                 <li>
-                  <strong>Voice:</strong> {result.metadata.voice}
+                  <strong>音色：</strong> {result.metadata.voice}
                 </li>
                 {result.metadata.pacing && (
                   <li>
-                    <strong>Pacing:</strong> {result.metadata.pacing}
+                    <strong>語速：</strong> {result.metadata.pacing}
                   </li>
                 )}
                 {result.metadata.style && (
                   <li>
-                    <strong>Style:</strong> {result.metadata.style}
+                    <strong>風格：</strong> {result.metadata.style}
                   </li>
                 )}
                 {result.metadata.accent && (
                   <li>
-                    <strong>Accent:</strong> {result.metadata.accent}
+                    <strong>口音：</strong> {result.metadata.accent}
                   </li>
                 )}
               </ul>

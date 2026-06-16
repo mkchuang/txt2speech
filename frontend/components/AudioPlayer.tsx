@@ -35,7 +35,7 @@ export default function AudioPlayer({ audioUrl }: AudioPlayerProps) {
           width: "fit-content",
         }}
       >
-        Download WAV
+        下載 WAV
       </a>
     </div>
   );

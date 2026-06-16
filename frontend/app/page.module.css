@@ -65,11 +65,53 @@
 .select {
   padding: 8px 10px;
   font-size: 0.875rem;
+  line-height: 1.5;
   border: 1px solid #ccc;
   border-radius: 6px;
   background: var(--background, #fff);
   color: var(--foreground, #000);
   max-width: 100%;
+}
+
+.voiceDetail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.voiceTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.voiceTag {
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #333;
+  border: 1px solid #d8d8d8;
+  border-radius: 4px;
+  background: #f7f7f7;
+}
+
+.voiceHint {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: #666;
+  margin: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .voiceTag {
+    color: #ddd;
+    border-color: #333;
+    background: #151515;
+  }
+
+  .voiceHint {
+    color: #aaa;
+  }
 }
 
 .textarea {
