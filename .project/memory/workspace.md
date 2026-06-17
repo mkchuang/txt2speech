@@ -70,7 +70,8 @@
 - [x] 任務 19：完成 TASK-016 主頁 UI + api-client + AudioPlayer（code review / Codex app 仲裁驗證：REVIEW PASS）
 - [x] 任務 20：完成 TASK-017 HistoryList 清單（OpenCode develop、Codex app 仲裁驗證、兩輪 Codex code review，最終 REVIEW PASS）
 - [x] 任務 21：完成 TASK-018 e2e 串接 + README + 環境檔（code review / Codex app 仲裁驗證：REVIEW PASS）
-- [ ] 下一步：commit 前 final scope check；manual residual = pronunciation / pacing / long seam 人耳回歸
+- [x] 任務 22：朗讀提示下拉選單化 + localStorage 記憶（style 6/pacing 5/accent 4 預設選項，前端 only，後端零變動；user test ok）
+- [ ] 下一步：manual residual = pronunciation / pacing / long seam 人耳回歸
 
 ### 當前技術挑戰
 1. **TTS 切塊 + PCM 串接品質**（最高風險）
@@ -94,6 +95,7 @@
 - 目標 3：完成 M6 前端核心（TASK-015 scaffold/proxy + TASK-016 主頁 UI/api-client/AudioPlayer 已完成）
 - 目標 4：完成 M7 前端歷史清單播放/下載/刪除（TASK-017 已完成）
 - 目標 5：完成 TASK-018 真實 Gemini e2e、README 與環境檔回歸；人耳 pronunciation / pacing / long seam 保留為 manual residual
+- 目標 6：朗讀提示（style/pacing/accent）下拉選單 + localStorage 記憶，前端 UX polish
 
 ### 待解決問題
 - [x] plan-2026-06-15-gemini-tts-speech-practice 已 **approved**（2026-06-15），已 breakdown 為 18 TASK
@@ -106,17 +108,17 @@
 
 ## 📊 模組開發狀態
 
-*最後更新：2026-06-15（TASK-017 review pass / update-memory）*
+*最後更新：2026-06-17（朗讀提示下拉 + localStorage）*
 
 | 模組 | 功能 | 開發狀態 | 驗證狀態 | 說明 |
 |------|------|----------|----------|------|
-| config | 設定/金鑰 | 🟢 已完成 | 🟢 已驗證 | TASK-001：pydantic-settings 載入 `GEMINI_API_KEY`/`DATA_DIR`/`CORS_ORIGINS` |
+| config | 設定/金鑰 | 🟢 已完成 | 🟢 已驗證 | TASK-001：pydantic-settings 載入 `GEMINI_API_KEY`/`DATA_DIR`/`CORS_ORIGINS`；TASK-018 補 test_config.py 11 tests |
 | api | FastAPI app + health/voices/synthesize/history/audio/md source | 🟢 M5 已完成 | 🟢 health/voices/synthesize/history/audio/md source 已驗證 | TASK-001：`/api/health`；TASK-002：`/api/voices`；TASK-011：`POST /api/synthesize` 回 metadata/audio_url；TASK-012：history/delete；TASK-013：audio Range + download；TASK-014：`source='md'` normalize 後合成並寫 metadata |
 | tts | prompt 組裝器 + Gemini adapter + 雙條件切塊器 + 長稿 synthesize 整合完成 | 🟢 M3 已完成 | 🟢 prompt/client/chunker/synthesize mock 已驗證 | TASK-003/004/007/008；`count_tokens` 僅算 prompt overhead，chunk 內容本地估算 |
 | audio | PCM→WAV + 多塊 concat | 🟢 M3 已完成 | 🟢 PCM/WAV/concat 已驗證 | TASK-005/008：24kHz mono 16-bit 預設、frame alignment、stdlib `wave` WAV 封裝、raw PCM 多塊串接 |
 | storage | SQLite metadata + 檔案系統 | 🟢 M4 已完成 | 🟢 DB/file/synthesize/history/audio integration 已驗證 | TASK-009：`storage/db.py` schema + create/list/get/delete；TASK-010：`storage/files.py` save/resolve/delete + path traversal 防護；TASK-011：synthesize 寫 completed/error row；TASK-012：history list/delete 串 DB + file；TASK-013：audio endpoint 讀 `DATA_DIR/audio/{id}.wav` |
 | ingest | markdown→plain text normalizer | 🟢 M5 已完成 | 🟢 heading/list/code/link/paragraph 與 synthesize md source 已驗證 | TASK-014 |
-| frontend | Next.js scaffold + rewrites proxy + 主頁 UI/api-client/AudioPlayer/HistoryList + README/env docs | 🟢 M8 baseline 已完成 | 🟢 lint/tsc/build/audit/npm ci dry-run/app gate + real Gemini proxy e2e 已驗證 | TASK-015：App Router + TypeScript，無 Tailwind；`/api/:path*` 同路徑 proxy 到 FastAPI :8000。TASK-016：文字/.md 輸入、voice/style/pacing/accent、inline tag insertion、生成後播放/下載已接 API contract。TASK-017：HistoryList 50 筆初載、Load more、completed audio 播放/下載、error row 無播放/下載且可刪除、synthesize 成功後 refresh。TASK-018：README/.env.example/test_config + real Gemini via Next proxy HTTP 200 valid WAV/download/history/frontend page ok |
+| frontend | Next.js scaffold + rewrites proxy + 主頁 UI/api-client/AudioPlayer/HistoryList + README/env docs + 朗讀提示下拉記憶 | 🟢 M8 baseline 已完成 | 🟢 lint/tsc/build/audit/npm ci dry-run/app gate + real Gemini proxy e2e + 朗讀提示 user test 已驗證 | TASK-015：App Router + TypeScript，無 Tailwind；`/api/:path*` 同路徑 proxy 到 FastAPI :8000。TASK-016：文字/.md 輸入、voice/style/pacing/accent、inline tag insertion、生成後播放/下載已接 API contract。TASK-017：HistoryList 50 筆初載、Load more、completed audio 播放/下載、error row 無播放/下載且可刪除、synthesize 成功後 refresh。TASK-018：README/.env.example/test_config + real Gemini via Next proxy HTTP 200 valid WAV/download/history/frontend page ok。Post-M8：朗讀提示 style/pacing/accent 改下拉選單 + localStorage 記憶（6/5/4 options），後端零變動 |
 
 ### 狀態圖例
 - ⚫ **未開始**: 尚未開始開發/測試
@@ -249,6 +251,7 @@
 - ✅ TASK-016：完成主頁 UI、api-client 與 AudioPlayer；文字與 `.md` 上傳可送 synthesize contract，生成結果可線上播放與下載；第二輪 review/app gate 通過。
 - ✅ TASK-017：完成 HistoryList 清單、分頁、播放、下載、刪除與 synthesize 成功後 refresh；error row 不顯示播放/下載但可刪除；最終 review/app gate 通過。
 - ✅ TASK-018：完成 e2e 串接、README、`.env.example` 與 `backend/tests/test_config.py`；review/app 仲裁驗證 PASS，backend 294 passed、frontend lint/tsc/build/audit/npm ci dry-run pass，real Gemini via Next proxy 產生 valid WAV 並通過 download/history/frontend page 檢查。
+- ✅ 朗讀提示 polish：style/pacing/accent 改為下拉選單（6/5/4 預設選項），搭配 localStorage 記憶設定；前端 only，後端零變動；lint/tsc pass，user test ok。
 
 #### 上週
 - ✅ [完成項目 1]：待補充
@@ -310,10 +313,11 @@
 | 2026-06-15 | TASK-016 主頁 UI + api-client + AudioPlayer | 通過 | REVIEW PASS；第二輪 Critical/Major/Minor/Suggestion 無 findings；lint、tsc、audit、npm ci dry-run、diff check、Playwright fallback app gate 通過 |
 | 2026-06-15 | TASK-017 HistoryList 清單 | 通過 | REVIEW PASS；Critical/Major/Minor/Suggestion 無 blocker；lint、tsc、build、audit、npm ci dry-run、diff check、Playwright app gate 通過 |
 | 2026-06-16 | TASK-018 e2e 串接 + README + 環境檔 | 通過 | REVIEW PASS；Critical/Major 無 blocker；backend 294 passed、compileall、frontend lint/tsc/build/audit/npm ci dry-run、real Gemini via Next proxy valid WAV/download/history/frontend page ok |
+| 2026-06-17 | 朗讀提示下拉選單 + localStorage | 通過 | frontend only；style 6/pacing 5/accent 4 下拉選項 + localStorage 記憶；lint/tsc pass，user test ok |
 
 ### 審查統計
-- 總審查次數：18
-- 通過審查：18
+- 總審查次數：19
+- 通過審查：19
 - 需修復：0
 
 ---

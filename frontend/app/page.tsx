@@ -25,12 +25,63 @@ const TAG_PRESETS = [
   { label: "耳語", tag: "[whisper] " },
 ];
 
+const STYLE_OPTIONS = [
+  { label: "自然清晰", value: "Natural and clear" },
+  { label: "新聞主播", value: "News anchor, crisp and professional" },
+  { label: "正式演講", value: "Formal keynote, authoritative and measured" },
+  { label: "說故事", value: "Storyteller, warm and expressive" },
+  { label: "輕鬆對話", value: "Casual conversational, friendly and relaxed" },
+  { label: "戲劇朗誦", value: "Dramatic recitation, theatrical emphasis" },
+];
+
+const PACING_OPTIONS = [
+  { label: "很慢", value: "Very slow, deliberate and measured" },
+  { label: "偏慢", value: "Moderately slow, unhurried" },
+  { label: "中速", value: "Moderate and natural" },
+  { label: "偏快", value: "Moderately fast, energetic" },
+  { label: "很快", value: "Very fast, rapid delivery" },
+];
+
+const ACCENT_OPTIONS = [
+  { label: "美式英文", value: "American English" },
+  { label: "英式英文", value: "British English" },
+  { label: "澳式英文", value: "Australian English" },
+  { label: "依文稿語言", value: "Accent matching the transcript language" },
+];
+
+const PREF_STORAGE_KEY = "txt2speech_prefs";
+
+interface StoredPrefs {
+  voice?: string;
+  style?: string;
+  pacing?: string;
+  accent?: string;
+}
+
+function loadPrefs(): StoredPrefs {
+  try {
+    const raw = localStorage.getItem(PREF_STORAGE_KEY);
+    if (raw) return JSON.parse(raw) as StoredPrefs;
+  } catch {
+    /* ignore */
+  }
+  return {};
+}
+
+function savePrefs(prefs: StoredPrefs) {
+  try {
+    localStorage.setItem(PREF_STORAGE_KEY, JSON.stringify(prefs));
+  } catch {
+    /* ignore */
+  }
+}
+
 export default function Home() {
   const [text, setText] = useState("");
   const [voice, setVoice] = useState("");
-  const [style, setStyle] = useState("");
-  const [pacing, setPacing] = useState("");
-  const [accent, setAccent] = useState("");
+  const [style, setStyle] = useState(() => loadPrefs().style ?? "");
+  const [pacing, setPacing] = useState(() => loadPrefs().pacing ?? "");
+  const [accent, setAccent] = useState(() => loadPrefs().accent ?? "");
   const [source, setSource] = useState<"text" | "md">("text");
 
   const [voices, setVoices] = useState<Voice[]>([]);
@@ -46,13 +97,22 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    savePrefs({ voice, style, pacing, accent });
+  }, [voice, style, pacing, accent]);
+
+  useEffect(() => {
     let cancelled = false;
 
     fetchVoices()
       .then((data) => {
         if (!cancelled) {
           setVoices(data.voices);
-          setVoice((currentVoice) => currentVoice || data.voices[0]?.name || "");
+          setVoice((currentVoice) => {
+            if (currentVoice) return currentVoice;
+            const savedVoice = loadPrefs().voice;
+            if (savedVoice && data.voices.some((v) => v.name === savedVoice)) return savedVoice;
+            return data.voices[0]?.name || "";
+          });
         }
       })
       .catch((err: unknown) => {
@@ -272,43 +332,58 @@ export default function Home() {
           <p className={styles.label}>朗讀提示</p>
           <div className={styles.notesGrid}>
             <div className={styles.noteField}>
-              <label htmlFor="style-input" className={styles.sublabel}>
+              <label htmlFor="style-select" className={styles.sublabel}>
                 風格
               </label>
-              <input
-                id="style-input"
-                className={styles.textInput}
-                type="text"
-                placeholder="例如：新聞主播、說故事"
+              <select
+                id="style-select"
+                className={styles.select}
                 value={style}
                 onChange={(e) => setStyle(e.target.value)}
-              />
+              >
+                <option value="">不指定</option>
+                {STYLE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className={styles.noteField}>
-              <label htmlFor="pacing-input" className={styles.sublabel}>
+              <label htmlFor="pacing-select" className={styles.sublabel}>
                 語速
               </label>
-              <input
-                id="pacing-input"
-                className={styles.textInput}
-                type="text"
-                placeholder="例如：慢而清楚、中速"
+              <select
+                id="pacing-select"
+                className={styles.select}
                 value={pacing}
                 onChange={(e) => setPacing(e.target.value)}
-              />
+              >
+                <option value="">不指定</option>
+                {PACING_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className={styles.noteField}>
-              <label htmlFor="accent-input" className={styles.sublabel}>
+              <label htmlFor="accent-select" className={styles.sublabel}>
                 口音
               </label>
-              <input
-                id="accent-input"
-                className={styles.textInput}
-                type="text"
-                placeholder="例如：美式、英式"
+              <select
+                id="accent-select"
+                className={styles.select}
                 value={accent}
                 onChange={(e) => setAccent(e.target.value)}
-              />
+              >
+                <option value="">不指定</option>
+                {ACCENT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </section>
